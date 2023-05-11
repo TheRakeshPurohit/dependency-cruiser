@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import consolidateToPattern from "../../src/graph-utl/consolidate-to-pattern.js";
+import consolidateToPattern from "../../src/graph-utl/consolidate-to-pattern.mjs";
 
-describe("report/utl/consolidateToPattern", () => {
+describe("[U] graph-utl/consolidateToPattern", () => {
   it("no pattern => no squashing", () => {
     const lInput = [
       {

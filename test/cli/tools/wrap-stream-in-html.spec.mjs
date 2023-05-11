@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
 import { Writable } from "node:stream";
 import { expect } from "chai";
-import wrapStreamInHTML from "../../../src/cli/tools/wrap-stream-in-html.js";
+import wrapStreamInHTML from "../../../src/cli/tools/wrap-stream-in-html.mjs";
 
 class WriteableExpectStream extends Writable {
   _write(pThing) {
@@ -20,7 +20,7 @@ class WriteableExpectStream extends Writable {
   }
 }
 
-describe("wrap-stream-in-html", () => {
+describe("[I] wrap-stream-in-html", () => {
   const lInStream = createReadStream("package.json");
   const lOutStream = new WriteableExpectStream();
 

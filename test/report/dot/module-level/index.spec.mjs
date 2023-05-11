@@ -2,75 +2,78 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
-import defaultTheme from "../../../../src/report/dot/default-theme.js";
-import dot from "../../../../src/report/dot/index.js";
+import defaultTheme from "../../../../src/report/dot/default-theme.mjs";
+import dot from "../../../../src/report/dot/index.mjs";
 import { createRequireJSON } from "../../../backwards.utl.mjs";
 
 const defaultRender = dot();
 const render = dot("module");
 const requireJSON = createRequireJSON(import.meta.url);
 
-const clusterless = requireJSON("./mocks/clusterless.json");
-const bunchOfModules = requireJSON("./mocks/bunch-of-modules.json");
+const clusterLess = requireJSON("./__mocks__/clusterless.json");
+const bunchOfModules = requireJSON("./__mocks__/bunch-of-modules.json");
 const focusMeModules = requireJSON(
-  "./mocks/dependency-cruiser-2020-01-25-focus-me.json"
+  "./__mocks__/dependency-cruiser-2022-07-17-focus-me.json"
 );
-const orphanDeps = requireJSON("./mocks/orphan-deps.json");
-const unresolvableDeps = requireJSON("./mocks/es6-unresolvable-deps.json");
-const doNotFollowDeps = requireJSON("./mocks/do-not-follow-deps.json");
-const prefixUri = requireJSON("./mocks/prefix-uri.json");
-const prefixNonUri = requireJSON("./mocks/prefix-non-uri.json");
+const orphanDeps = requireJSON("./__mocks__/orphan-deps.json");
+const unresolvableDeps = requireJSON("./__mocks__/es6-unresolvable-deps.json");
+const doNotFollowDeps = requireJSON("./__mocks__/do-not-follow-deps.json");
+const prefixUri = requireJSON("./__mocks__/prefix-uri.json");
+const prefixNonUri = requireJSON("./__mocks__/prefix-non-uri.json");
 const bareTheme = requireJSON("./bare-theme.json");
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-const mockPath = join(__dirname, "mocks");
-const clusterlessFixture = readFileSync(
-  join(mockPath, "clusterless.dot"),
+const fixturesPath = join(__dirname, "__fixtures__");
+const clusterLessFixture = readFileSync(
+  join(fixturesPath, "clusterless.dot"),
   "utf8"
 );
 const unresolvableFixture = readFileSync(
-  join(mockPath, "es6-unresolvable-deps.dot"),
+  join(fixturesPath, "es6-unresolvable-deps.dot"),
   "utf8"
 );
 const doNotFollowFixtureDefaultTheme = readFileSync(
-  join(mockPath, "do-not-follow-deps-default-theme.dot"),
+  join(fixturesPath, "do-not-follow-deps-default-theme.dot"),
   "utf8"
 );
 const doNotFollowFixture = readFileSync(
-  join(mockPath, "do-not-follow-deps.dot"),
+  join(fixturesPath, "do-not-follow-deps.dot"),
   "utf8"
 );
 const orphanFixture = readFileSync(
-  join(mockPath, "orphan-deps-default-theme.dot"),
+  join(fixturesPath, "orphan-deps-default-theme.dot"),
   "utf8"
 );
 const orphanFixtureBoring = readFileSync(
-  join(mockPath, "orphan-deps.dot"),
+  join(fixturesPath, "orphan-deps.dot"),
   "utf8"
 );
-const prefixUriFixture = readFileSync(join(mockPath, "prefix-uri.dot"), "utf8");
+const prefixUriFixture = readFileSync(
+  join(fixturesPath, "prefix-uri.dot"),
+  "utf8"
+);
 const prefixNonUriFixture = readFileSync(
-  join(mockPath, "prefix-non-uri.dot"),
+  join(fixturesPath, "prefix-non-uri.dot"),
   "utf8"
 );
 const defaultColorFixture = readFileSync(
-  join(__dirname, "mocks/bunch-of-modules-default-theme.dot"),
+  join(fixturesPath, "bunch-of-modules-default-theme.dot"),
   "utf8"
 );
 const bareColorFixture = readFileSync(
-  join(__dirname, "mocks/bunch-of-modules.dot"),
+  join(fixturesPath, "bunch-of-modules.dot"),
   "utf8"
 );
 const focusMeModulesFixture = readFileSync(
-  join(mockPath, "dependency-cruiser-2020-01-25-focus-me.dot"),
+  join(fixturesPath, "dependency-cruiser-2022-07-17-focus-me.dot"),
   "utf8"
 );
 
-describe("report/dot/module-level reporter", () => {
+describe("[I] report/dot/module-level reporter", () => {
   it("renders a dot - modules in the root don't come in a cluster", () => {
-    expect(render(clusterless, { theme: bareTheme }).output).to.deep.equal(
-      clusterlessFixture
+    expect(render(clusterLess, { theme: bareTheme }).output).to.deep.equal(
+      clusterLessFixture
     );
   });
 

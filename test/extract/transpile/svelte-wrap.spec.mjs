@@ -1,13 +1,12 @@
-// eslint-disable-next-line node/no-unsupported-features/node-builtins
-import { promises as fsPromise } from "node:fs";
+import { readFileSync } from "node:fs";
 import { expect } from "chai";
-import svelteWrap from "../../../src/extract/transpile/svelte-wrap.js";
+import svelteWrap from "../../../src/extract/transpile/svelte-wrap.mjs";
 import normalizeSource from "../normalize-source.utl.mjs";
-import typescriptWrap from "../../../src/extract/transpile/typescript-wrap.js";
+import typescriptWrap from "../../../src/extract/transpile/typescript-wrap.mjs";
 
 const wrap = svelteWrap(typescriptWrap(true));
 
-describe("svelte transpiler", () => {
+describe("[I] svelte transpiler", () => {
   it("tells the svelte transpiler is available", () => {
     expect(wrap.isAvailable()).to.equal(true);
   });
@@ -22,24 +21,19 @@ describe("svelte transpiler", () => {
         ),
     ],
   ].forEach(([variant, transformExpected]) => {
-    it(`'transpiles' svelte with "<script lang='${variant}'>"'`, async () => {
-      const observedPromise = fsPromise
-        .readFile(
-          `./test/extract/transpile/fixtures/svelte-${variant}.svelte`,
-          "utf8"
-        )
-        .then((pSourceCode) => wrap.transpile(pSourceCode));
-      const expectedPromise = fsPromise.readFile(
-        "./test/extract/transpile/fixtures/svelte.js",
+    it(`'transpiles' svelte with "<script lang='${variant}'>"'`, () => {
+      const lSource = readFileSync(
+        `./test/extract/transpile/__mocks__/svelte-${variant}.svelte`,
+        "utf8"
+      );
+      const lObserved = wrap.transpile(lSource);
+      const lExpected = readFileSync(
+        "./test/extract/transpile/__fixtures__/svelte.js",
         "utf8"
       );
 
-      const [observed, expected] = await Promise.all([
-        observedPromise,
-        expectedPromise,
-      ]);
-      expect(normalizeSource(observed)).to.equal(
-        normalizeSource(transformExpected(expected))
+      expect(normalizeSource(lObserved)).to.equal(
+        normalizeSource(transformExpected(lExpected))
       );
     });
   });

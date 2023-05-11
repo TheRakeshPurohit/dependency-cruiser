@@ -3,7 +3,9 @@
 - [Filters](#filters)
   - [`doNotFollow`: don't cruise modules any further](#donotfollow-dont-cruise-modules-any-further)
   - [`includeOnly`: only include modules satisfying a pattern](#includeonly-only-include-modules-satisfying-a-pattern)
-  - [`focus`: show modules matching a pattern - with their direct neighbours](#focus-show-modules-matching-a-pattern---with-their-direct-neighbours)
+  - [`focus`: show modules matching a pattern - with their direct neighbours](#focus-show-modules-matching-a-pattern---with-their-neighbours)
+  - [`reaches`: show modules matching a pattern - with everything that can reach them](#reaches-show-modules-matching-a-pattern---with-everything-that-can-reach-them)
+  - [`highlight`: highlight modules](#highlight-highlight-modules)
   - [`exclude`: exclude dependencies from being cruised](#exclude-exclude-dependencies-from-being-cruised)
   - [`collapse`: summarize to folder depth or pattern](#collapse-summarize-to-folder-depth-or-pattern)
   - [`maxDepth`](#maxdepth)
@@ -12,7 +14,7 @@
   - [`tsPreCompilationDeps`](#tsprecompilationdeps)
   - [`tsConfig`: use a TypeScript configuration file ('project')](#tsconfig-use-a-typescript-configuration-file-project)
   - [`babelConfig`: use a babel configuration file](#babelconfig-use-a-babel-configuration-file)
-  - [`webackConfig`: use (the resolution options of) a webpack configuration](#webpackconfig-use-the-resolution-options-of-a-webpack-configuration)
+  - [`webpackConfig`: use (the resolution options of) a webpack configuration](#webpackconfig-use-the-resolution-options-of-a-webpack-configuration)
   - [Yarn Plug'n'Play support - `externalModuleResolutionStrategy`](#yarn-plugnplay-support---externalmoduleresolutionstrategy)
   - [`prefix`: prefix links in reports](#prefix-prefix-links-in-reports)
 - [`reporterOptions`](#reporteroptions)
@@ -20,13 +22,18 @@
   - [summarising/ `collapsePattern` (`dot` and `archi` reporters)](#summarising-collapsepattern-dot-and-archi-reporters)
   - [filtering (`dot`, `ddot` and `archi` reporters)](#filtering-dot-ddot-and-archi-reporters)
   - [wordlist - (`anon` reporter)](#wordlist---anon-reporter)
+  - [markdown](#markdown)
+  - [mermaid](#mermaid)
+  - [text](#text)
 - [Esoteric options](#esoteric-options)
   - [preserveSymlinks](#preservesymlinks)
   - [mono repo behaviour - combinedDependencies](#mono-repo-behaviour---combinedDependencies)
   - [exotic ways to require modules - exoticRequireStrings](#exotic-ways-to-require-modules---exoticrequirestrings)
+  - [extraExtensionsToScan](#extraextensionstoscan)
   - [enhancedResolveOptions](#enhancedresolveoptions)
   - [forceDeriveDependents](#forcederivedependents)
   - [parser](#parser)
+  - [cache](#cache)
 
 ## Filters
 
@@ -161,14 +168,15 @@ exclude all node_modules, core modules and modules otherwise outside it):
 If you specify both an includeOnly and an exclude (see below), dependency-cruiser takes
 them _both_ into account.
 
-### `focus`: show modules matching a pattern - with their direct neighbours
+### `focus`: show modules matching a pattern - with their neighbours
 
 > :shell: command line option equivalent: `--focus`
 
 Just like the `includeOnly` option, `focus` takes a regular expressions you want
 dependency-cruiser to show in its output. In addition dependency-cruiser will
-include all neighbours of those modules; direct dependencies and direct
-dependents.
+include all neighbours of those modules. By default these will be direct dependencies
+and direct dependents - if you want more, you can use the [`depth`](#adding-depth)
+attribute.
 
 This can be useful if you just want to focus on one part of your application and
 how it interacts with the outside world.
@@ -204,10 +212,43 @@ Example configuration:
 <summary>sample command line invocation and graphical output</summary>
 
 ```sh
-depcruise -c focus.config.json -T dot | dot -T svg > focus.svg
+depcruise -src c focus.config.json -T dot | dot -T svg > focus.svg
 ```
 
 ![focus](assets/filtering/focus.svg)
+
+</details>
+
+#### adding `depth`
+
+> :shell: command line option equivalent: `--focus-depth`
+
+With the `depth` attribute you can influence whether to include not only direct
+neighbours (`depth: 1` - the default), but also _their_ neighbours (`depth: 2`)
+etc. Just like with the `maxDepth` option, a depth of 0 is interpreted as _infinite_.
+
+Example configuration:
+
+```json
+{
+  "options": {
+    "includeOnly": "^src/",
+    "focus": {
+      "path": "^src/main/",
+      "depth": 2
+    }
+  }
+}
+```
+
+<details>
+<summary>sample command line invocation and graphical output</summary>
+
+```sh
+depcruise src -c focus-depth-2.config.json -T dot | dot -T svg > focus-depth-2.svg
+```
+
+![focus with depth 2](assets/filtering/focus-depth-2.svg)
 
 </details>
 
@@ -228,7 +269,7 @@ a `matchesFocus` attribute, which is either `true` for modules in focus or
     "focus": "^src/main/",
     "reporterOptions": {
       "dot": {
-        "collapsePattern": "^node_modules/[^/]+/",
+        "collapsePattern": "^node_modules/(@[^/]+/[^/]+|[^/]+)/",
         "theme": {
           "graph": {
             "splines": "ortho"
@@ -258,7 +299,7 @@ a `matchesFocus` attribute, which is either `true` for modules in focus or
 When run...
 
 ```sh
-depcruise -c snazzy-focus.config.json -T dot | dot -T svg > snazzy-focus.svg
+depcruise src -c snazzy-focus.config.json -T dot | dot -T svg > snazzy-focus.svg
 ```
 
 ...it'll look something like this:
@@ -266,6 +307,124 @@ depcruise -c snazzy-focus.config.json -T dot | dot -T svg > snazzy-focus.svg
 ![snazzy focus](assets/filtering/snazzy-focus.svg)
 
 </details>
+
+### `reaches`: show modules matching a pattern - with everything that can reach them
+
+> :shell: command line option equivalent: `--reaches`
+
+Just like the `includeOnly` and `focus` option, `reaches` takes a regular expression
+that dependency-cruiser uses to find modules to show in its output. In addition
+to what `includeOnly` does, dependency-cruiser will all dependents (direct _and_
+indirect) of the modules matched by the regular expression.
+
+This can be useful if you want to make an impact analysis on what would
+be affected when you change one or more modules around.
+
+Example configuration that'd filter out everything in src/report that can
+directly or indirectly reach the dependency-to-incidence-transformer module:
+
+```json
+{
+  "options": {
+    "includeOnly": "^src/report",
+    "reaches": "^src/report/utl/index.js"
+  }
+}
+```
+
+Which will look something like this when output through a `dot` reporter:
+
+![graphical output showing all modules in src/report that (transitively) depend on the src/report/utl/index.js module](assets/filtering/reaches-example.svg)
+
+#### snazzy-up graphics with the 'matchesReaches' attribute
+
+Just like with the `focus` filter option dependency-cruiser tags the modules that
+_directly_ match the regular expression in the filter with `matchesReaches: true`
+and all other modules with `matchesReaches: false`. You can use this in the `dot`
+like reporter configurations to do some nice highlighting:
+
+```javascript
+{
+  "options": {
+    "includeOnly": "^src/",
+    "reaches": "^src/report/index.js",
+    "reporterOptions": {
+      "dot": {
+        "theme": {
+          "graph": {
+            "splines": "ortho"
+          },
+          "modules": [
+            {
+              "criteria": { "matchesReaches": true },
+              "attributes": {
+                "fillcolor": "lime"
+              }
+            },
+            {
+              "criteria": { "matchesReaches": false },
+              "attributes": {
+                "fillcolor": "lightgray",
+                "fontcolor": "gray"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+Without this theming engaged the graph would look like this:
+
+![All modules that can reach src/report/index.js - no highlighting](./assets/filtering/reaches-without-highlight.svg)
+
+With the theming it looks like this:
+
+![All modules that can reach src/report/index.js - with only that module highlighted](./assets/filtering/reaches-with-highlight.svg)
+
+### `highlight`: highlight modules
+
+> :shell: command line option equivalent: `--highlight`
+
+In contrast to all other 'filter' types this doesn't really filter anything. It
+will, however, label all modules that match the regular expression `matchesHighlight`
+boolean attribute. Reporters can use this to their advantage to apply special
+colors or fonts to the modules marked as such. The `mermaid` and `dot` reporters
+do this out of the box. The `dot` (and related, like ddot, archi and flat) reporter
+allows for some tweaking in the `options.reporterOptions` section of your
+.dependency-cruiser.js, the same way you can tweak the modules matched by
+the `reaches` or `focus` filters.
+
+An example:
+
+```javascript
+{
+  "options": {
+    "includeOnly": "^src/",
+    "reaches": "^src/report/index.js",
+    "reporterOptions": {
+      "dot": {
+        "theme": {
+          "graph": {
+            "splines": "ortho"
+          },
+          "modules": [
+            {
+              "criteria": { "matchesHighlight": true },
+              "attributes": {
+                "fillcolor": "yellow",
+                "penwidth": 2
+              }
+            },
+          ]
+        }
+      }
+    }
+  }
+}
+```
 
 ### `exclude`: exclude dependencies from being cruised
 
@@ -322,7 +481,7 @@ described primarily [over there](cli.md#--collapse-summarize-to-folder-depth-or-
 > :shell: command line option equivalent: `--max-depth`
 
 Only cruise the specified depth, counting from the specified root-module(s). This
-command is mostly useful in combination with visualisation output like _dot_ to
+command is mostly useful in combination with visualization output like _dot_ to
 keep the generated output to a manageable size.
 
 > :bulb: If you use this to get a high level overview of your dependencies, be sure
@@ -359,15 +518,15 @@ And with `"maxDepth": 3` like this:
 > :shell: command line option equivalent: `--module-systems`
 
 Here you can pass a list of module systems dependency-cruiser should use
-to detect dependencies. It defaults to `["amd", "cjs", "es6", "tsd]` The
+to detect dependencies. It defaults to `["es6", "cjs", "tsd", "amd"]` The
 'module systems' dependency-cruiser supports:
 
 | System | Meaning                                                                                                                                                                        |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `amd`  | [Asynchronous Module Definition](https://github.com/amdjs/amdjs-api/wiki/AMD) as used by a.o. [RequireJS](requirejs.org)                                                       |
-| `cjs`  | Common js as popularised by [node.js](https://nodejs.org/dist/latest-v12.x/docs/api/modules.html) which uses the `require` function to include other modules                   |
 | `es6`  | modules as defined for ECMAScript 6 in 2015 in [Emma-262](http://www.ecma-international.org/ecma-262/6.0/index.html#sec-modules), with proper `import` and `export` statements |
+| `cjs`  | Common js as popularised by [node.js](https://nodejs.org/dist/latest-v18.x/docs/api/modules.html) which uses the `require` function to include other modules                   |
 | `tsd`  | [TypeScript 'triple slash directives'](https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html)                                                              |
+| `amd`  | [Asynchronous Module Definition](https://github.com/amdjs/amdjs-api/wiki/AMD) as used by a.o. [RequireJS](requirejs.org)                                                       |
 
 ## `tsPreCompilationDeps`
 
@@ -488,7 +647,7 @@ Sample
 }
 ```
 
-You can do it even more minimalistically like so (in which case dependency-cruiser will
+You can do it even more minimalistic like so (in which case dependency-cruiser will
 assume the fileName to be `tsconfig.json`)
 
 ```json
@@ -549,22 +708,17 @@ babelConfig - dependency-cruiser will sort it out for you.
   but [raise an issue](https://github.com/sverweij/dependency-cruiser/issues/new?template=feature-request.md&title=Feature+request%3A+use+babel+only+for+specific+extensions?)
   if you need this to be configurable.
 - :bulb: Dependency-cruiser can process json (/ json5) configurations, either in a
-  separate file or as a key in your package.json. It can also process .js and
-  .cjs configurations, as long as they're commonjs modules and export a simple
-  javascript object. JavaScript configurations that export a function, and/ or
-  that are es modules might be supported in a later stage.
+  separate file or as a key in your package.json. It can also process .js , .cjs
+  and .mjs configurations, as long as they export a simple javascript object.
+  JavaScript configurations that export a function, might get supported in a
+  later stage (upon request).
 - :bulb: Auto detection in [--init](cli.md#--init) looks at some of the likely suspects
   for babel configs - _package.json_ (only if it contains a _babel_ key),
   _.babelrc_, _.babelrc.json_, _babel.config.json_ and any other file with _babel_
   in the name that ends on _json_ or _json5_. - The feature currently works with
   babel versions >=7.0.0
-- :warning: Babel support is currently an experimental feature. This means it
-  is thoroughly tested, works well as far as we could determine. It also means
-  dependency-cruiser won't get a major version bump for little changes that
-  for regular features might be considered breaking (think of more precise
-  module system determination).
 - :construction: The current implementation of babel support is robust, but can be more
-  efficient. It's on the [roadmap](https://github.com/sverweij/dependency-cruiser/projects/1#card-39192574),
+  efficient. It's on the [road map](https://github.com/sverweij/dependency-cruiser/projects/1#card-39192574),
   but as it's not entirely trivial it may take some time. The implementation
   will be feature switched to guarantee stability.
 
@@ -614,6 +768,13 @@ you can provide the parameters like so:
 - :bulb: If your webpack config exports an array of configurations,
   dependency-cruiser will only use the resolve options of the first
   configuration in that array.
+- :bulb: Configuration files in the node 'native' formats (.json, .js (both commonjs
+  and ESM), .cjs, .mjs, .node) will load without configuration.
+- :bulb: formats of webpack configurations (TypeScript, yaml, livescript(!),
+  json5 etc.) only work when the function is available that hacks nodejs into
+  accepting the language type.
+  This should already be the case in order for `webpack-cli` to parse the config in
+  the first place, so that _should_ hardly be an issue.
 - :bulb: For more information check out the the [webpack resolve](https://webpack.js.org/configuration/resolve/)
   documentation.
 
@@ -645,7 +806,7 @@ open the link on GitHub instead of the local file - pass that in the
 ```
 
 Any URL works, so you can also use it to make sure links always open in your
-favourite editor. Here's an example for visual studio code:
+favorite editor. Here's an example for visual studio code:
 
 ```javascript
 ...
@@ -689,7 +850,7 @@ The criteria are evaluated top to bottom:
 - Criteria in the configuration file take precedence over the default ones.
 
 For an extensive example you can have a look at the default theme dependency-cruiser
-ships with - [default-theme.json](../src/report/dot/default-theme.json).
+ships with - [default-theme.js](../src/report/dot/default-theme.js).
 
 #### theming examples
 
@@ -803,12 +964,12 @@ module.exports = {
 
 ![vertical](assets/theming/vertical.svg)
 
-To get output without any attributes and no conditional colouring you can order
+To get output without any attributes and no conditional coloring you can order
 the default theme to be replaced by flipping the `replace` attribute to `true`.
 
 <details>
 <summary>bare</summary>
-<!-- bin/dependency-cruise.js -Tdot -v doc/assets/theming/bare.config.js src/main | dot -Tsvg > doc/assets/theming/bare.svg-->
+<!-- bin/dependency-cruise.mjs -Tdot -v doc/assets/theming/bare.config.js src/main | dot -Tsvg > doc/assets/theming/bare.svg-->
 
 ```javascript
 module.exports = {
@@ -844,6 +1005,9 @@ module.exports = {
       dot: {
         // collapse onto folders one step below node_modules:
         collapsePattern: "^(node_modules/[^/]+)",
+        // if you additionally collapse to scoped packages (@foo/bar, @foo/baz)
+        // instead of just the scope (@foo) you can use this pattern:
+        // collapsePattern: "^(node_modules/(@[^/]+/[^/]+|[^/]+))",
       },
     },
   },
@@ -915,17 +1079,15 @@ dependencies to either folders ([_ddot_](#ddot)), or to a level you specify
 ([_archi_](#archi)).
 
 With _filters_ you can prune the dependency tree the _dot_ reporter shows. It
-works _on top_ of the cruise-level filters (_includeOnly_, _exclude_, _focus_
-and _doNotFollow_) and only for the reporter you configured it for.
+works _on top_ of the cruise-level filters (_includeOnly_, _exclude_, _focus_,
+_reaches_ and _doNotFollow_) and only for the reporter you configured it for.
 
 > The filters specified in the _dot_ reporterOptions act as a fall back for
 > the _archi_ and _ddot_ reporterOptions. This is because we found that often
-> you want the same pruning for all visualisations.
+> you want the same pruning for all visualizations.
 
 The filters the _reporterOptions.dot.filters_ support are _includeOnly_,
-_exclude_ and _focus_. Currently they only support the path attribute (which,
-just like the ones on top cruise level accepts either a regular-expression-as-a-string
-or an array of them).
+_exclude_, _focus_ and _reaches_.
 
 Example:
 
@@ -968,7 +1130,7 @@ depcruise src bin test -T json -c > results.json
 # than even one cruise:
 depcruise-fmt -T dot results.json | dot -T svg > module-graph.svg
 depcruise-fmt -T archi results.json | dot -T svg > high-level-graph.svg
-depcruise-fmt -e -T err results.json
+depcruise-fmt --exit-code -T err results.json
 ```
 
 > Note: as of version 9.12.0 depcruise-fmt has [filters](cli.md#depcruise-fmt)
@@ -980,6 +1142,33 @@ depcruise-fmt -e -T err results.json
 > depcruise-fmt -T dot results.json --include-only "^packages/ancillaries" | dot -T svg > ancillaries.svg
 > depcruise-fmt -T dot results.json --include-only "^packages/checkout" | dot -T svg > checkout.svg
 > ```
+
+### showMetrics - (`dot` and `flat` reporters)
+
+With the showMetrics switch you can influence whether you want to show metrics
+in the graph or not (_not_ is also the default).
+
+> Dependency-cruiser doesn't calculate these metrics by default - as likely not
+> a lot of folks need them, and it _does_ involve serious numbers of CPU-cycles
+> to calculate them - switching the showMetrics option for these reporters to
+> true will ensure metrics _are_ calculated.
+
+```javascript
+module.exports = {
+  options: {
+    reporterOptions: {
+      dot: {
+        showMetrics: true,
+      },
+    },
+  },
+};
+```
+
+This currently shows the instability metric next to the filename, e.g for the
+`dot` reporter like so:
+
+<img width="595" alt="sample that includes instability metrics" src="assets/with-metrics.png">
 
 ### wordlist - (`anon` reporter)
 
@@ -1028,6 +1217,151 @@ module.exports = {
       }
   }
 }
+```
+
+### options for the _metrics_ reporter
+
+By default the metrics reporter emits instability metrics for all modules and
+folders, ordered by instability (descending). If you want to see less, or
+use a different sort order, you can tweak that with the metrics reporterOptions.
+
+- `hideModules`: switch to `true` if you only want to see instability metrics for
+  folders. Defaults to `false`.
+- `hideFolders`: switch to `true` if you only want to see instability metrics for
+  modules. Defaults to `false`.
+- `orderBy`: with this you can specify how the metrics reporter orders its output.
+  Defaults to `instability`.
+  Possible values `name`, `moduleCount`, `afferentCouplings`, `efferentCouplings`,
+  `instability`.
+
+```javascript
+module.exports = {
+  // ...
+  options: {
+    reporterOptions: {
+      metrics: {
+        hideModules: true, // hides the modules from the metrics reporter output
+        // hideFolders: true, // would hide folders from the metrics reporter output
+        orderBy: "name", // possible values: name, moduleCount, afferentCouplings, efferentCouplings, instability
+      },
+    },
+  },
+};
+```
+
+## markdown
+
+> The markdown reporter is a keeper, but the reporterOptions.markdown interface
+> below is _experimental_ and might change without a major version bump.
+
+The `markdown` reporter by default delivers a report approximately as complete as
+the `err-html` reporter, including a title, a summary section, a details section
+and a footer. It might be you don't need that in your target situation (e.g. in a
+[GitHub action job summary](https://github.blog/2022-05-09-supercharging-github-actions-with-job-summaries/)).
+This is why it is configurable. The a `markdown` section in the
+`options.reporterOptions` section of your dependency-cruiser lets you configure
+what parts to leave in or out - and even what titles and headers the report
+should show:
+
+```javascript
+module.exports = {
+  // ...
+  options: {
+    reporterOptions: {
+      markdown: {
+        // Whether or not to show a title in the report. Defaults to true.
+        showTitle: true,
+        // The text to show as a title of the report.
+        title: "## dependency-cruiser forbidden dependency check - results",
+
+        // Whether or not to show a summary in the report
+        showSummary: true,
+        // Whether or not to give the summary a header
+        showSummaryHeader: true,
+        // The text to show as a header on top of the summary
+        summaryHeader: "### Summary",
+        // Whether or not to show high level stats in the summary
+        showStatsSummary: true,
+        // Whether or not to show a list of violated rules in the summary
+        showRulesSummary: true,
+        // Whether or not to show rules in the list of rules for which all violations are ignored.
+        includeIgnoredInSummary
+
+        // Whether or not to show a detailed list of violations
+        showDetails: true,
+        // Whether or not to show ignored violations in the detailed list.
+        includeIgnoredInDetails: true,
+        // Whether or not to give the detailed list of violations a header
+        showDetailsHeader: true,
+        // The text to show as a header on top of the detailed list of violations
+        detailsHeader: "### All violations",
+        // Whether or not to collapse the list of violations in a <details> block
+        // especially practical when the list of violations is still large.
+        collapseDetails: true,
+        // The text to in the <summary> section of the <details> block
+        collapsedMessage: "Violations found - click to expand",
+        // The text to show when no violations were found
+        noViolationsMessage: "No violations found",
+
+        // Whether or not to show a footer (with version & run date) at the bottom of the report
+        showFooter: true,
+      },
+    },
+  },
+};
+```
+
+<details><summary>Example output</summary>
+
+<img width="722" 
+  alt="annotated screen shot of a markdown report - the real one is accessible" 
+  src="assets/sample-markdown-output.png">
+
+</details>
+
+## mermaid
+
+By default the `mermaid` reporter delivers "compressed" results - This means that
+the rendered appearance remains the same, but the node is hashed and shortened.
+The default value for mermaid.js limits the amount of text that mermaid.js will
+render to 50000 characters.
+
+However, it is also possible to output readable results without compression:
+
+```javascript
+module.exports = {
+  // ...
+  options: {
+    reporterOptions: {
+      mermaid: {
+        // Whether or not to compresses the output text. Defaults to true.
+        minify: false,
+      },
+    },
+  },
+};
+```
+
+## text
+
+When you emit a text report you might want to see more clearly which modules you
+'focussed' with the `focus` option and which are callers/ called. In order to do
+so you can pass an option that highlights focused modules (currently by
+<u>underlining</u> the focused modules).
+
+```javascript
+module.exports = {
+  // ...
+  options: {
+    reporterOptions: {
+      text: {
+        // Whether or not to highlight modules that are focused with the focus
+        // option. Defaults to false.
+        highlightFocused: true,
+      },
+    },
+  },
+};
 ```
 
 ## Esoteric options
@@ -1095,6 +1429,29 @@ E.g.:
 }
 ```
 
+### extraExtensionsToScan
+
+The first step dependency-cruiser takes is to scan files and folders matching
+the arguments you passed it for files it can parse - typically TypeScript or
+JavaScript sources. Only in a next step it considers other file types, like
+when you include a picture from a `.jsx`. This approach means dependency-cruiser
+only finds these file types when they're reachable from parsable file types.
+
+If you want to run orphan or reachability rules against these file types, however
+you might want include them in the first scan already. To do so you can pass
+their extensions in an `extraExtensionsToScan` array, like so:
+
+```json
+"options": {
+  "extraExtensionsToScan": [".json", ".jpg", ".webp", ".png"]
+}
+```
+
+> dependency-cruiser will take special care not to even _read_ these files as
+> it can't parse them anyway, and skipping them saves (sometimes a lot) of
+> time. This also means that if you put an extension in the extra extensions
+> to scan dependency-cruiser _could_ have had parsed it won't.
+
 ### enhancedResolveOptions
 
 Under the hood dependency-cruiser uses webpack's
@@ -1137,7 +1494,21 @@ However, if you want it to scan less you can specify so with the extensions
 attribute. E.g. when you're 100% sure you _only_ have typescript & json and
 nothing else you can pass `['.ts', '.json']` - which can lead to performance gains
 on systems with slow i/o (like ms-windows), especially when your tsconfig
-contains paths/ aliasses.
+contains paths/ aliases.
+
+#### `mainFields`
+
+A list of main fields in manifests (package.json-s). Typically you'd want to keep
+leave this this on its default (`['main']`) , but if you e.g. use external packages
+that only expose types, and you still want references to these types to be resolved
+you could expand this to `['main', 'types']`.
+
+#### `mainFiles`
+
+> Likely you will not need to use this
+
+A list of files to consider 'main' files, defaults to ['index']. Only set this
+when you have really special needs that that warrant it.
 
 #### cachedInputFileSystem - `cacheDuration`
 
@@ -1151,7 +1522,7 @@ resolutions in memory.
 
 With `cacheDuration` you can tweak the number of milliseconds
 [enhanced-resolve](https://github.com/webpack/enhanced-resolve)'s cached
-file system should use for cache duration. Typicially you won't have to touch
+file system should use for cache duration. Typically you won't have to touch
 this - the default works well for repos up to 5000 modules/ 20000 dependencies,
 and likely for numbers above as well. If you experience memory problems on a
 (humongous) repository you can use the cacheDuration attribute to tame
@@ -1189,8 +1560,72 @@ to `true`.
 
 ### `parser`
 
-This _EXPERIMENTAL_ feature enables you to specify whether to use the `acorn`
-parser dependency-cruiser uses by default or the faster and smaller (but slightly
-less) feature rich `swc` parser. This only works when `@core/swc` is installed
-in the same spot as dependency-cruiser is (it's not (yet?) bundled as a
-dependency).
+With this _EXPERIMENTAL_ feature you can specify which parser you want to use
+as the primary parser: the `acorn` one, which handles all things javascript
+(commonjs, es-modules, jsx), or one of two parser that can in addition parse
+typescript; microsoft's `tsc` or the faster and smaller (but slightly less
+feature rich) `swc`.
+
+`swc` and `tsc` only work when the compilers (respectively `@core/swc` and
+`typescript`) are installed in the same spot as dependency-cruiser is. They're
+not bundled with dependency-cruiser.
+
+### `cache`
+
+> :shell: command line option equivalent: --cache
+
+> Available from version 11.14.0.
+
+> :warning: the cache feature is _experimental_. It _is_ significantly faster
+> and it _is_ tested, but the interface & format might be changing without
+> dependency-cruiser getting a major bump.
+
+Indicates if you want to use caching, and if so enables you to tweak how it
+operates.
+
+The long form:
+
+```javascript
+{
+  // ...
+ "options": {
+    cache: {
+      // folder where dependency-cruiser will put its cache files
+      folder: "node_modules/.cache/dependency-cruiser",
+      // cache strategy to use - either 'metadata' (which uses git in the
+      // background) or 'content' (which will look at file content (hashes),
+      // is slower than 'metadata' and is a bleeding edge feature as of
+      // version 12.5.0)
+      strategy: "metadata"
+    }
+    // ...
+  }
+}
+```
+
+It's also possible to shorten this either by providing an empty object or `true`
+(= 'do use caching, but use the default settings'): `cache: {}` or `cache: true`.
+
+For backwards compatibility you can give it a string as well - dependency-cruiser
+will interpret that as the cache folder.
+
+```javascript
+{
+  // ...
+ "options": {
+    // cache dependency-cruiser results to a custom location
+    cache: "some-folder/where-you-want-to-store/cache"
+    // ...
+  }
+}
+```
+
+If you don't want to use caching you cah leave the cache option out altogether or
+use `cache: false`.
+
+As with most settings the command line option of the same name takes
+precedence of whichever is specified here.
+
+See [`--cache`: use a cache to speed up cruising (experimental)](cli.md#--cache-use-a-cache-to-speed-up-cruising-experimental)
+in the command line documentation for more details on how the caching function
+currently operates.

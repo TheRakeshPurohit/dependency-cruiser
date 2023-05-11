@@ -1,8 +1,7 @@
-/* eslint-disable no-unused-expressions */
 import { expect } from "chai";
-import { isExternalModule } from "../../../src/extract/resolve/module-classifiers.js";
+import { isExternalModule } from "../../../src/extract/resolve/module-classifiers.mjs";
 
-describe("extract/resolve/module-classifiers - isExternalModule", () => {
+describe("[U] extract/resolve/module-classifiers - isExternalModule", () => {
   it("returns false when passed nothing", () => {
     expect(isExternalModule()).to.equal(false);
   });

@@ -1,0 +1,92 @@
+[
+  {
+    "type": "dependency",
+    "from": "test/api.spec.mjs",
+    "to": "dependency-cruiser",
+    "rule": {
+      "severity": "error",
+      "name": "not-to-unresolvable"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "test/api.spec.mjs",
+    "to": "dependency-cruiser/config-utl/extract-babel-config",
+    "rule": {
+      "severity": "error",
+      "name": "not-to-unresolvable"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "test/api.spec.mjs",
+    "to": "dependency-cruiser/config-utl/extract-depcruise-config",
+    "rule": {
+      "severity": "error",
+      "name": "not-to-unresolvable"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "test/api.spec.mjs",
+    "to": "dependency-cruiser/config-utl/extract-ts-config",
+    "rule": {
+      "severity": "error",
+      "name": "not-to-unresolvable"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "test/api.spec.mjs",
+    "to": "dependency-cruiser/config-utl/extract-webpack-resolve-config",
+    "rule": {
+      "severity": "error",
+      "name": "not-to-unresolvable"
+    }
+  },
+  {
+    "type": "module",
+    "from": "src/graph-utl/consolidate-to-folder.mjs",
+    "to": "src/graph-utl/consolidate-to-folder.mjs",
+    "rule": {
+      "severity": "error",
+      "name": "not-unreachable-from-cli"
+    }
+  },
+  {
+    "type": "module",
+    "from": "src/schema/baseline-violations.schema.mjs",
+    "to": "src/schema/baseline-violations.schema.mjs",
+    "rule": {
+      "severity": "error",
+      "name": "not-unreachable-from-cli"
+    }
+  },
+  {
+    "type": "module",
+    "from": "src/utl/array-util.mjs",
+    "to": "src/utl/array-util.mjs",
+    "rule": {
+      "severity": "info",
+      "name": "utl-module-not-shared-enough"
+    }
+  },
+  {
+    "type": "module",
+    "from": "src/utl/find-all-files.mjs",
+    "to": "src/utl/find-all-files.mjs",
+    "rule": {
+      "severity": "info",
+      "name": "utl-module-not-shared-enough"
+    }
+  },
+  {
+    "type": "module",
+    "from": "src/utl/wrap-and-indent.mjs",
+    "to": "src/utl/wrap-and-indent.mjs",
+    "rule": {
+      "severity": "info",
+      "name": "utl-module-not-shared-enough"
+    }
+  }
+]

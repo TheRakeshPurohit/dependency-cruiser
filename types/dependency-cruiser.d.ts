@@ -1,12 +1,13 @@
 import { ICruiseResult } from "./cruise-result";
-import { ICruiseOptions } from "./options";
-import { OutputType } from "./shared-types";
+import { ICruiseOptions, IFormatOptions } from "./options";
+import { IResolveOptions } from "./resolve-options";
 
 export * from "./rule-set";
 export * from "./options";
 export * from "./configuration";
 export * from "./shared-types";
 export * from "./cruise-result";
+export * from "./resolve-options";
 
 /**
  * all supported extensions; for each extension whether or not
@@ -56,29 +57,6 @@ export interface IReporterOutput {
   exitCode: number;
 }
 
-/**
- * Cruises the specified files and files with supported extensions in
- * the specified directories in the pFileDirArray and returns the result
- * in an object.
- *
- * @param pFileAndDirectoryArray  An array of (names of) files, directories and/ or glob patterns
- *                        to start the cruise with
- * @param pCruiseOptions  Options that influence the way the dependencies are cruised - and
- *                        how they are returned.
- * @param pResolveOptions Options that influence how dependency references are resolved to disk.
- *                        See https://webpack.js.org/configuration/resolve/ for the details.
- * @param pTSConfig       An object with with a typescript config object. Note that the
- *                        API will not take any 'extends' keys there into account, so
- *                        before calling make sure to flatten them out if you want them
- *                        used (e.g. with 'dependency-cruiser/config-utl/extract-ts-config')
- */
-export function cruise(
-  pFileAndDirectoryArray: string[],
-  pCruiseOptions?: ICruiseOptions,
-  pResolveOptions?: any,
-  pTSConfig?: any
-): IReporterOutput;
-
 export interface ITranspileOptions {
   /**
    * An object with with a typescript config object. Note that the
@@ -89,16 +67,13 @@ export interface ITranspileOptions {
   tsConfig?: any;
   /**
    * An object with with a babel config object. Either pass the options
-   * manually or extract them from a configu file with e.g. with
+   * manually or extract them from a configuration file with e.g. with
    * 'dependency-cruiser/config-utl/extract-babel-config')
    */
   babelConfig?: any;
 }
 
 /**
- * /!\ Beta cruise function. Supports slightlhy more stuff (i.e. babel), but
- * the function signature might change without notice. /!\
- *
  * Cruises the specified files and files with supported extensions in
  * the specified directories in the pFileDirArray and returns the result
  * in an object.
@@ -112,12 +87,12 @@ export interface ITranspileOptions {
  * @param pTranspileOptions Object to hold options to pass to underlying transpilers
  *                        like TypeScript or Babel
  */
-export function futureCruise(
+export function cruise(
   pFileAndDirectoryArray: string[],
   pCruiseOptions?: ICruiseOptions,
-  pResolveOptions?: any,
+  pResolveOptions?: IResolveOptions,
   pTranspileOptions?: ITranspileOptions
-): IReporterOutput;
+): Promise<IReporterOutput>;
 
 /**
  * Given a cruise result, formats it with the given reporter (pOutputType)
@@ -128,8 +103,8 @@ export function futureCruise(
  */
 export function format(
   pResult: ICruiseResult,
-  pOutputType: OutputType
-): IReporterOutput;
+  pFormatOptions: IFormatOptions
+): Promise<IReporterOutput>;
 
 /**
  * Returns an array of supported transpilers and for each of the transpilers

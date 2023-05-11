@@ -3,29 +3,29 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
 import { createRequireJSON } from "../../../backwards.utl.mjs";
-import dot from "../../../../src/report/dot/index.js";
+import dot from "../../../../src/report/dot/index.mjs";
 
 const render = dot("folder");
 const requireJSON = createRequireJSON(import.meta.url);
 
-const deps = requireJSON("./mocks/dependency-cruiser-2019-01-14.json");
-const orphans = requireJSON("./mocks/orphans.json");
-const rxjs = requireJSON("./mocks/rxjs.json");
+const deps = requireJSON("./__mocks__/dependency-cruiser-2019-01-14.json");
+const orphans = requireJSON("./__mocks__/orphans.json");
+const rxjs = requireJSON("./__mocks__/rxjs.json");
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-const mockFolder = join(__dirname, "mocks");
+const fixturesFolder = join(__dirname, "__fixtures__");
 const consolidatedDot = readFileSync(
-  join(mockFolder, "dependency-cruiser-2019-01-14.dot"),
+  join(fixturesFolder, "dependency-cruiser-2019-01-14.dot"),
   "utf8"
 );
 const consolidatedOrphansDot = readFileSync(
-  join(mockFolder, "orphans.dot"),
+  join(fixturesFolder, "orphans.dot"),
   "utf8"
 );
-const consolidatedRxJs = readFileSync(join(mockFolder, "rxjs.dot"), "utf8");
+const consolidatedRxJs = readFileSync(join(fixturesFolder, "rxjs.dot"), "utf8");
 
-describe("report/dot/folder-level reporter", () => {
+describe("[I] report/dot/folder-level reporter", () => {
   it("consolidates to folder level", () => {
     const lReturnValue = render(deps);
 

@@ -38,4 +38,27 @@ export interface IFocusType {
    * dependents)
    */
   path?: string | string[];
+  /**
+   * by default 'focus' only inlcudes the direct neighbours of the focus'ed module(s).
+   * This property makes dependency-cruiser will also include neighbors of neighbors,
+   * up to the specified depth.
+   */
+  depth?: number;
+}
+
+export interface IReachesType {
+  /**
+   * dependency-cruiser will include modules matching this regular expression
+   * in its output, as well as _any_ module that reaches them - either directly
+   * or via via.
+   */
+  path?: string | string[];
+}
+
+export interface IHighlightType {
+  /**
+   * dependency-cruiser will mark modules matching this regular expression
+   * as 'highlighted' in its output
+   */
+  path?: string | string[];
 }

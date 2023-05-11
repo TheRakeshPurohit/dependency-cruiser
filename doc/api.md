@@ -2,13 +2,11 @@
 
 The typical use for dependency-cruiser is on the command line. However, you
 might want to use it programmatically. For this, dependency-cruiser has an
-API
+API.
 
 ## Versioning
 
-The API follows the same (semantic) versioning rules and rythm as the API does
-
-function cruise(pFileAndDirectoryArray, pOptions, pResolveOptions, pTSConfig) {
+The API follows the same (semantic) versioning rules and rhythm as the CLI does.
 
 ## Using the API - step by step
 
@@ -23,7 +21,7 @@ import { cruise, IReporterOutput } from "dependency-cruiser";
 
 const ARRAY_OF_FILES_AND_DIRS_TO_CRUISE: string[] = ["src"];
 try {
-    const cruiseResult: IReporterOutput = cruise(ARRAY_OF_FILES_AND_DIRS_TO_CRUISE);
+    const cruiseResult: IReporterOutput = await cruise(ARRAY_OF_FILES_AND_DIRS_TO_CRUISE);
 } catch(error)
 
 
@@ -33,7 +31,7 @@ console.dir(cruiseResult.output, { depth: 10 });
 You might notice a few things when you do this
 
 - the function ruthlessly cruises _everything_ in `src` and whatever it uses,
-  recucrsively - even in your `node_modules`. This takes a long time and might
+  recursively - even in your `node_modules`. This takes a long time and might
   not give the information you actually seek. Dependency-cruiser has a bunch of
   options to steer what it actually cruises;
   [passing cruise options](#Passing cruise options) will get you sorted.
@@ -52,7 +50,7 @@ const cruiseOptions: ICruiseOptions = {
   includeOnly: "src",
 };
 try {
-  const cruiseResult: IReporterOutput = cruise(
+  const cruiseResult: IReporterOutput = await cruise(
     ARRAY_OF_FILES_AND_DIRS_TO_CRUISE,
     cruiseOptions
   );
@@ -85,7 +83,7 @@ const webpackResolveOptions = {
 };
 
 try {
-  const cruiseResult: IReporterOutput = cruise(
+  const cruiseResult: IReporterOutput = await cruise(
     ARRAY_OF_FILES_AND_DIRS_TO_CRUISE,
     cruiseOptions,
     webpackResolveOptions
@@ -98,30 +96,37 @@ try {
 
 ### Utility functions
 
-> Exposition of `extract-xxx` functions is _experimental_. It also will only
-> work on node ^12.19 || >=14.7 as those are versions that support the `exports`
-> entry points feature in package.json.
-
 ```typescript
-import { cruise, ICruiseOptions, IReporterOutput } from ".";
-import extractDepcruiseConfig from "./src/config-utl/extract-depcruise-config";
-import extractTSConfig from "./src/config-utl/extract-ts-config";
-import extractWebpackResolveConfig from "./src/config-utl/extract-webpack-resolve-config";
+import { cruise, ICruiseOptions, IReporterOutput } from "dependency-cruiser";
+import extractDepcruiseConfig from "dependency-cruiser/config-utl/extract-depcruise-config";
+import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
+import extractWebpackResolveConfig from "dependency-cruiser/config-utl/extract-webpack-resolve-config";
+import extractBabelConfig from "dependency-cruiser/config-utl/extract-babel-config";
 
 try {
   const ARRAY_OF_FILES_AND_DIRS_TO_CRUISE = ["src"];
 
-  const depcruiseConfig: ICruiseOptions = extractDepcruiseConfig(
+  const depcruiseConfig: ICruiseOptions = await extractDepcruiseConfig(
     "./.dependency-cruiser.js"
   );
-  const webpackResolveConfig = extractWebpackResolveConfig("./webpack.conf.js");
+  const webpackResolveConfig = await extractWebpackResolveConfig(
+    "./webpack.conf.js"
+  );
   const tsConfig = extractTSConfig("./tsconfig.json");
+  // const babelConfig = await extractBabelConfig("./babel.conf.json");
 
-  const cruiseResult: IReporterOutput = cruise(
+  const cruiseResult: IReporterOutput = await cruise(
     ARRAY_OF_FILES_AND_DIRS_TO_CRUISE,
     depcruiseConfig,
     webpackResolveConfig,
-    tsConfig
+    //   change since v13: in stead of passing the tsConfig directly, like so:
+    // tsconfig
+    //   you now pass it into an object that also supports other types of
+    //   compiler options, like those for babel:
+    {
+      tsConfig: tsConfig,
+      // babelConfig: babelConfig,
+    }
   );
 
   console.dir(cruiseResult.output, { depth: 10 });

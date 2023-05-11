@@ -1,11 +1,11 @@
 import { win32, posix } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
-import normalizeFilesAndDirectories from "../../../src/main/files-and-dirs/normalize.js";
+import normalizeFilesAndDirectories from "../../../src/main/files-and-dirs/normalize.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-describe("main/files-and-dirs", () => {
+describe("[U] main/files-and-dirs", () => {
   it("Keeps an empty file dir array as is", () => {
     expect(normalizeFilesAndDirectories([])).to.deep.equal([]);
   });

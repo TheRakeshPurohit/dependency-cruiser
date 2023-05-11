@@ -2,6 +2,7 @@ import REAsStringsType from "./re-as-strings-type.mjs";
 import compoundExcludeType from "./compound-exclude-type.mjs";
 import compoundFocusType from "./compound-focus-type.mjs";
 import compoundIncludeOnlyType from "./compound-include-only-type.mjs";
+import compoundReachesType from "./compound-reaches-type.mjs";
 
 export default {
   definitions: {
@@ -15,6 +16,10 @@ export default {
         dot: { $ref: "#/definitions/DotReporterOptionsType" },
         ddot: { $ref: "#/definitions/DotReporterOptionsType" },
         flat: { $ref: "#/definitions/DotReporterOptionsType" },
+        markdown: { $ref: "#/definitions/MarkdownReporterOptionsType" },
+        metrics: { $ref: "#/definitions/MetricsReporterOptionsType" },
+        mermaid: { $ref: "#/definitions/MermaidReporterOptionsType" },
+        text: { $ref: "#/definitions/TextReporterOptionsType" },
       },
     },
     AnonReporterOptionsType: {
@@ -26,7 +31,7 @@ export default {
           type: "array",
           description:
             "List of words to use to replace path elements of file names in the output " +
-            "with so the output isn't directly traceable to its intended purpose." +
+            "with so the output isn't directly traceable to its intended purpose. " +
             "When the list is exhausted, the anon reporter will use random strings " +
             "patterned after the original file name in stead. The list is empty " +
             "by default. " +
@@ -34,6 +39,157 @@ export default {
           items: {
             type: "string",
           },
+        },
+      },
+    },
+    MetricsReporterOptionsType: {
+      type: "object",
+      description: "Options to tweak the output of the metrics reporter",
+      additionalProperties: false,
+      properties: {
+        orderBy: {
+          type: "string",
+          enum: [
+            "instability",
+            "moduleCount",
+            "afferentCouplings",
+            "efferentCouplings",
+            "name",
+          ],
+          description:
+            "By what attribute (in addition to the names of the folders/ modules) " +
+            "to order the metrics by. Defaults to 'instability'.",
+        },
+        hideModules: {
+          type: "boolean",
+          description:
+            "When true hides module metrics from the report. Defaults to false",
+        },
+        hideFolders: {
+          type: "boolean",
+          description:
+            "When true hides folder metrics from the report. Defaults to false",
+        },
+      },
+    },
+    MarkdownReporterOptionsType: {
+      type: "object",
+      description:
+        "Options to show and hide sections of the markdown reporter and to provide " +
+        "alternate boilerplate text",
+      additionalProperties: false,
+      properties: {
+        showTitle: {
+          type: "boolean",
+          description:
+            "Whether or not to show a title in the report. Defaults to true.",
+        },
+        title: {
+          type: "string",
+          description:
+            "The text to show as a title of the report. E.g. " +
+            "'## dependency-cruiser forbidden dependency check - results'. " +
+            "When left out shows a default value.",
+        },
+        showSummary: {
+          type: "boolean",
+          description:
+            "Whether or not to show a summary in the report. Defaults to true.",
+        },
+        showSummaryHeader: {
+          type: "boolean",
+          description:
+            "Whether or not to give the summary a header. Defaults to true.",
+        },
+        summaryHeader: {
+          type: "string",
+          description:
+            "The text to show as a header on top of the summary. E.g. '### Summary'. " +
+            "When left out shows a default value.",
+        },
+        showStatsSummary: {
+          type: "boolean",
+          description:
+            "Whether or not to show high level stats in the summary. Defaults to true.",
+        },
+        showRulesSummary: {
+          type: "boolean",
+          description:
+            "Whether or not to show a list of violated rules in the summary. Defaults to true.",
+        },
+        includeIgnoredInSummary: {
+          type: "boolean",
+          description:
+            "Whether or not to show rules in the list of rules for which all violations are ignored. Defaults to true.",
+        },
+        showDetails: {
+          type: "boolean",
+          description:
+            "Whether or not to show a detailed list of violations. Defaults to true.",
+        },
+        includeIgnoredInDetails: {
+          type: "boolean",
+          description:
+            "Whether or not to show ignored violations in the detailed list. Defaults to true.",
+        },
+        showDetailsHeader: {
+          type: "boolean",
+          description:
+            "Whether or not to give the detailed list of violations a header. Defaults to true.",
+        },
+        detailsHeader: {
+          type: "string",
+          description:
+            "The text to show as a header on top of the detailed list of violations. E.g. '### All violations'. " +
+            "When left out shows a default value.",
+        },
+        collapseDetails: {
+          type: "boolean",
+          description:
+            "Whether or not to collapse the list of violations in a <details> block. Defaults to true.",
+        },
+        collapsedMessage: {
+          type: "string",
+          description:
+            "The text to in the <summary> section of the <details> block. E.g. 'click to see all violations'. " +
+            "When left out shows a default value.",
+        },
+        noViolationsMessage: {
+          type: "string",
+          description:
+            "The text to show when no violations were found. E.g. 'No violations found'. " +
+            "When left out shows a default value.",
+        },
+        showFooter: {
+          type: "boolean",
+          description:
+            "Whether or not to show a footer (with version & run date) at the bottom of the report. " +
+            "Defaults to true",
+        },
+      },
+    },
+    MermaidReporterOptionsType: {
+      type: "object",
+      description: "Options to tweak the output of the mermaid reporters",
+      additionalProperties: false,
+      properties: {
+        minify: {
+          type: "boolean",
+          description:
+            "Whether or not to compresses the output text. Defaults to true.",
+        },
+      },
+    },
+    TextReporterOptionsType: {
+      type: "object",
+      description: "Options that influence rendition of the text reporter",
+      additionalProperties: false,
+      properties: {
+        highlightFocused: {
+          type: "boolean",
+          description:
+            "Whether or not to highlight modules that are focused with the --focus " +
+            "command line option (/ general option). Defaults to false",
         },
       },
     },
@@ -49,6 +205,13 @@ export default {
           $ref: "#/definitions/REAsStringsType",
         },
         filters: { $ref: "#/definitions/ReporterFiltersType" },
+        showMetrics: {
+          description:
+            "When passed the value 'true', shows instability metrics in the " +
+            "output if dependency-cruiser calculated them. Doesn't show them " +
+            "in all other cases. Defaults to false",
+          type: "boolean",
+        },
         theme: { $ref: "#/definitions/DotThemeType" },
       },
     },
@@ -118,11 +281,13 @@ export default {
         exclude: { $ref: "#/definitions/CompoundExcludeType" },
         includeOnly: { $ref: "#/definitions/CompoundIncludeOnlyType" },
         focus: { $ref: "#/definitions/CompoundFocusType" },
+        reaches: { $ref: "#/definitions/CompoundReachesType" },
       },
     },
     ...compoundExcludeType.definitions,
     ...compoundIncludeOnlyType.definitions,
     ...compoundFocusType.definitions,
+    ...compoundReachesType.definitions,
     ...REAsStringsType.definitions,
   },
 };

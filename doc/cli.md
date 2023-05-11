@@ -18,27 +18,41 @@ available in dependency-cruiser configurations.
 1. [arguments - files and/ or directories](#arguments---files-and-or-directories)
 1. [`--output-type`: specify the output format](#--output-type-specify-the-output-format)
 1. [`--config`/ `--validate`: use a configuration with rules and/or options](#--config---validate)
+1. [`--no-config`: do not use a configuration file](#--no-config)
 1. [`--init`](#--init)
+1. [`--metrics`: calculate stability metrics](#--metrics)
+1. [`--no-metrics`: do not calculate stability metrics](#--no-metrics)
 1. [`--info`: show what alt-js are supported](#--info-showing-what-alt-js-are-supported)
+1. [`--ignore-known`: ignore known violations](#--ignore-known-ignore-known-violations)
+1. [`--no-ignore-known`: don't ignore known violations](#--no-ignore-known)
 1. [`--help`/ no parameters: get help](#--help--no-parameters)
 
 ### Options also available in dependency-cruiser configurations
 
 1. [`--do-not-follow`: don't cruise modules adhering to this pattern any further](#--do-not-follow-dont-cruise-modules-adhering-to-this-pattern-any-further)
 1. [`--include-only`: only include modules satisfying a pattern](#--include-only-only-include-modules-satisfying-a-pattern)
-1. [`--focus`: show modules and their direct neighbours](#--focus-show-modules-and-their-direct-neighbours)
+1. [`--focus`: show modules and their neighbours](#--focus-show-modules-and-their-neighbours)
+1. [`--focus-depth`: influence how many layers of neighbors --focus shows](#--focus-depth-influence-how-many-layers-of-neighbors---focus-shows)
+1. [`--reaches`: show modules and their transitive dependents](#--reaches-show-modules-and-their-transitive-dependents)
+1. [`--highlight`: highlight modules](#--highlight-highlight-modules)
 1. [`--collapse`: summarize to folder depth or pattern](#--collapse-summarize-to-folder-depth-or-pattern)
 1. [`--exclude`: exclude dependencies from being cruised](#--exclude-exclude-dependencies-from-being-cruised)
 1. [`--max-depth`](#--max-depth)
-1. [`--progress`: get feedback on what dependency-cruiser is doing while it's running](#--progress-get-feedbakc-on-what-dependency-cruiser-is-doing-while-its-running)
+1. [`--progress`: get feedback on what dependency-cruiser is doing while it's running](#--progress-get-feedback-on-what-dependency-cruiser-is-doing-while-its-running)
+1. [`--no-progress`: don't show feedback on what dependency-cruiser is doing](#--no-progress-dont-show-feedback-on-what-dependency-cruiser-is-doing)
 1. [`--prefix` prefixing links](#--prefix-prefixing-links)
 1. [`--module-systems`](#--module-systems)
 1. [`--ts-pre-compilation-deps` (typescript only)](#--ts-pre-compilation-deps-typescript-only)
 1. [`--ts-config`: use a typescript configuration file ('project')](#--ts-config-use-a-typescript-configuration-file-project)
 1. [`--webpack-config`: use (the resolution options of) a webpack configuration`](#--webpack-config-use-the-resolution-options-of-a-webpack-configuration)
 1. [`--preserve-symlinks`](#--preserve-symlinks)
+1. [`--cache`: use a cache to speed up cruising (experimental)](#--cache-use-a-cache-to-speed-up-cruising-experimental)
+1. [`--cache-strategy`: influence how the cache functionality detects changes (experimental)](#--cache-strategy-influence-how-the-cache-functionality-detects-changes-experimental)
+1. [`--no-cache`: switch off caching](#--no-cache-switch-off-caching)
 
 ### Standalone formatting of dependency graphs: [depcruise-fmt](#depcruise-fmt)
+
+### Baseline dependencies: [depcruise-baseline](#depcruise-baseline)
 
 ### Make GraphViz output more interactive: [depcruise-wrap-stream-in-html](#depcruise-wrap-stream-in-html)
 
@@ -100,7 +114,7 @@ This will:
   will exit with exit code _number of violations with severity `error` found_
   in the same fashion linters and test tools do.
 
-See the _depcruise_ target in the [package.json](https://github.com/sverweij/dependency-cruiser/blob/master/package.json#L55)
+See the _depcruise_ target in the [package.json](https://github.com/sverweij/dependency-cruiser/blob/develop/package.json#L55)
 for a real world example.
 
 #### err-long
@@ -131,6 +145,10 @@ You can customise the look of these graphs. See the
 sections in the options reference for details. You can also use
 [`depcruise-wrap-stream-in-html`](#depcruise-wrap-stream-in-html) to
 make the graphs more interactive.
+
+When dependency-cruiser calculcated instability metrics (command line option
+[`--metrics`](#--metrics)), these will show up in the modules so it's easy to
+verify whether the _stable dependency principle_ holds.
 
 #### ddot - summarise on folder level
 
@@ -184,12 +202,77 @@ As a comparison, this is the default dot report for the same folder(s)
 
 </details>
 
+This too is a reporter that shows the modules' instability metrics when they
+have been calculated ([--metrics](#--metrics) command line switch).
+
+#### mermaid
+
+Generates a graph in mermaid format - which can be convenient as e.g. GitHub and
+GitLab support this out of the box in their on-line rendering of markdown.
+
+Both due to limitations in the mermaid format and to the relative newness of this
+reporter the graph cannot be (made as) feature rich as those produced by the
+`dot` reporters.
+
+<details>
+<summary>Sample output</summary>
+
+```mermaid
+flowchart LR
+
+subgraph src["src"]
+  subgraph src_main["main"]
+    subgraph src_main_rule_set["rule-set"]
+      src_main_rule_set_normalize_js["normalize.js"]
+    end
+    src_main_index_js["index.js"]
+    subgraph src_main_utl["utl"]
+      src_main_utl_normalize_re_properties_js["normalize-re-properties.js"]
+    end
+  end
+end
+subgraph test["test"]
+  subgraph test_enrich["enrich"]
+    subgraph test_enrich_derive["derive"]
+      subgraph test_enrich_derive_reachable["reachable"]
+        test_enrich_derive_reachable_index_spec_mjs["index.spec.mjs"]
+      end
+    end
+  end
+  subgraph test_main["main"]
+    subgraph test_main_rule_set["rule-set"]
+      test_main_rule_set_normalize_spec_mjs["normalize.spec.mjs"]
+    end
+  end
+  subgraph test_validate["validate"]
+    test_validate_parse_ruleset_utl_mjs["parse-ruleset.utl.mjs"]
+  end
+end
+subgraph node_modules["node_modules"]
+  subgraph node_modules_lodash["lodash"]
+    node_modules_lodash_has_js["has.js"]
+    node_modules_lodash_cloneDeep_js["cloneDeep.js"]
+  end
+end
+src_main_rule_set_normalize_js-->src_main_utl_normalize_re_properties_js
+src_main_rule_set_normalize_js-->node_modules_lodash_cloneDeep_js
+src_main_rule_set_normalize_js-->node_modules_lodash_has_js
+src_main_index_js-->src_main_rule_set_normalize_js
+test_enrich_derive_reachable_index_spec_mjs-->src_main_rule_set_normalize_js
+test_main_rule_set_normalize_spec_mjs-->src_main_rule_set_normalize_js
+test_validate_parse_ruleset_utl_mjs-->src_main_rule_set_normalize_js
+
+style src_main_rule_set_normalize_js fill:lime,color:black
+```
+
+</details>
+
 #### err-html
 
 Generates a stand-alone html report with:
 
 - a summary with files & dependencies cruised and the number of errors and warnings found
-- all rules, ordered by the number of violations (unviolated ones are hidden by default)
+- all rules, ordered by the number of violations (un-violated ones are hidden by default)
 - a list of all dependency and module violations, ordered by severity, rule name, from module, to module.
 
 ```shell
@@ -197,6 +280,20 @@ dependency-cruise --validate --output-type err-html -f dependency-report.html sr
 ```
 
 <img width="722" alt="screen shot of an err-html report - the real one is accessible" src="assets/sample-err-html-output.png">
+
+#### markdown
+
+> This reporter is _experimental_. It's currently as configurable as it is
+> to test out how it works in various contexts a.o. GitHub actions action summary's
+> and possibly in a custom action (to show output in a PR, for instance)
+>
+> At the moment of writing (2022-06-09) it doesn't support links or show
+> a complete list of all run validations like e.g. the `err-html` reporter does.
+
+Approximately the same content as the `err-html` reporter, but instead in markdown
+format. The markdown reporter is fairly configurable - see the
+[markdown](./options-reference.md#markdown) section in the options reference
+for details.
 
 #### html
 
@@ -264,7 +361,7 @@ src/report/dot/index.js → src/report/dot/prepare-custom-level.js
 src/report/dot/index.js → src/report/dot/prepare-folder-level.js
 src/report/dot/index.js → src/report/dot/theming.js
 src/report/dot/module-utl.js → src/report/dot/theming.js
-src/report/dot/theming.js → src/report/dot/default-theme.json
+src/report/dot/theming.js → src/report/dot/default-theme.js
 src/report/dot/prepare-custom-level.js → src/report/utl/consolidate-to-pattern.js
 src/report/dot/prepare-custom-level.js → src/report/dot/module-utl.js
 src/report/utl/consolidate-to-pattern.js → src/report/utl/consolidate-module-dependencies.js
@@ -395,6 +492,124 @@ so it's easier to compare than the two json's):
 
 </details>
 
+#### baseline - generate known violations
+
+Generates a list of all current violations you can use as input for the
+[`--ignore-known`](#--ignore-known-ignore-known-violations) option.
+
+#### metrics - generate a report with stability metrics for each folder
+
+Shows for each module and each folder:
+
+| metric             | abbreviation | description                                                                                                               |
+| ------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| number of modules  | N            |                                                                                                                           |
+| Afferent couplings | Ca           | The number of modules outside this folder that depend on this folder ("coming in")                                        |
+| Efferent couplings | Ce           | The number of modules this folder depends on _outside_ the current folder ("going out")                                   |
+| Instability        | I            | Ce / (Ca + Ce) a number between 0 and 1 that indicates how 'stable' the folder with 0: wholy stable; and 1 wholy unstable |
+
+While the term 'instability' has a negative connotation it's also unavoidable
+in any meaningful system. It's the basis of Martin's variable component stability
+principle: 'the instability of a folder should be larger than the folders it
+depends on'.
+
+Only present when dependency-cruiser was asked to calculate it.
+
+<details>
+<summary>Typical output</summary>
+
+```
+name                                                      N    Ca    Ce  I
+----------------------------------------------------- ----- ----- -----  -----
+bin                                                       4     0    12  1
+src/validate                                              7     0     4  1
+bin/depcruise-baseline.js                                 1     0     4  1
+bin/depcruise-fmt.js                                      1     0     4  1
+bin/dependency-cruise.js                                  1     0     4  1
+src/validate/index.js                                     1     0     4  1
+src/extract                                              40     3    86  0.97
+src/extract/get-dependencies.js                           1     1    14  0.93
+src                                                      64     9   115  0.93
+src/extract/resolve/index.js                              1     1    11  0.92
+src/main                                                 10     3    25  0.89
+src/main/resolve-options                                  1     1     7  0.88
+src/extract/clear-caches.js                               1     1     7  0.88
+src/main/resolve-options/normalize.js                     1     1     7  0.88
+src/extract/transpile                                    10     4    27  0.87
+src/extract/resolve                                      10     5    30  0.86
+src/extract/transpile/vue-template-wrap.js                1     1     6  0.86
+src/extract/gather-initial-sources.js                     1     1     6  0.86
+src/extract/resolve/resolve-cjs.js                        1     1     5  0.83
+src/extract/index.js                                      1     1     4  0.8
+src/extract/parse/to-javascript-ast.js                    1     2     8  0.8
+src/extract/transpile/coffeescript-wrap.js                1     1     4  0.8
+src/extract/transpile/svelte-wrap.js                      1     1     4  0.8
+src/extract/transpile/typescript-wrap.js                  1     1     4  0.8
+src/extract/resolve/determine-dependency-types.js         1     1     4  0.8
+src/main/options/normalize.js                             1     1     4  0.8
+src/main/rule-set/validate.js                             1     1     4  0.8
+src/validate/match-dependency-rule.js                     1     1     4  0.8
+src/validate/match-module-rule.js                         1     1     4  0.8
+src/cli/index.js                                          1     2     7  0.78
+src/cli/normalize-cli-options.js                          1     2     7  0.78
+src/main/index.js                                         1     3    10  0.77
+src/cli                                                   6     6    18  0.75
+src/extract/resolve/get-manifest                          2     2     6  0.75
+src/main/rule-set                                         2     2     6  0.75
+src/extract/transpile/babel-wrap.js                       1     1     3  0.75
+src/extract/transpile/livescript-wrap.js                  1     1     3  0.75
+src/extract/resolve/get-manifest/merge-manifests.js       1     1     3  0.75
+src/extract/ast-extractors/extract-amd-deps.js            1     1     3  0.75
+src/extract/ast-extractors/extract-es6-deps.js            1     1     3  0.75
+src/extract/ast-extractors/swc-dependency-visitor.js      1     1     3  0.75
+src/extract/ast-extractors/extract-typescript-deps.js     1     1     3  0.75
+src/cli/format-meta-info.js                               1     1     3  0.75
+src/cli/format.js                                         1     1     3  0.75
+src/extract/transpile/meta.js                             1     4    10  0.71
+src/extract/parse/to-typescript-ast.js                    1     2     5  0.71
+src/extract/resolve/resolve-amd.js                        1     2     5  0.71
+src/extract/parse                                         3     7    17  0.71
+src/extract/ast-extractors                                7     5    11  0.69
+src/main/options                                          3     3     6  0.67
+src/extract/resolve/external-module-helpers.js            1     3     6  0.67
+src/extract/resolve/get-manifest/index.js                 1     2     4  0.67
+src/extract/resolve/resolve-helpers.js                    1     1     2  0.67
+src/main/report-wrap.js                                   1     1     2  0.67
+src/main/rule-set/normalize.js                            1     1     2  0.67
+src/validate/violates-required-rule.js                    1     1     2  0.67
+src/main/utl                                              1     2     3  0.6
+src/main/utl/normalize-re-properties.js                   1     2     3  0.6
+src/main/options/validate.js                              1     2     3  0.6
+src/extract/parse/to-swc-ast.js                           1     3     4  0.57
+src/main/files-and-dirs                                   1     1     1  0.5
+src/extract/transpile/index.js                            1     1     1  0.5
+src/extract/transpile/svelte-preprocess.js                1     1     1  0.5
+src/extract/resolve/resolve.js                            1     3     3  0.5
+src/extract/ast-extractors/extract-cjs-deps.js            1     2     2  0.5
+src/extract/ast-extractors/extract-swc-deps.js            1     1     1  0.5
+src/extract/utl/detect-pre-compilation-ness.js            1     1     1  0.5
+src/main/files-and-dirs/normalize.js                      1     1     1  0.5
+src/cli/validate-node-environment.js                      1     3     2  0.4
+src/extract/utl/get-extension.js                          1     2     1  0.33
+src/validate/is-module-only-rule.js                       1     2     1  0.33
+src/extract/resolve/module-classifiers.js                 1     5     2  0.29
+src/extract/ast-extractors/estree-helpers.js              1     3     1  0.25
+src/extract/utl                                           6    10     2  0.17
+src/extract/utl/path-to-posix.js                          1     5     1  0.17
+src/meta.js                                               1    15     0  0
+src/extract/transpile/javascript-wrap.js                  1     1     0  0
+src/extract/utl/strip-query-parameters.js                 1     1     0  0
+src/extract/utl/compare.js                                1     1     0  0
+src/extract/utl/extract-module-attributes.js              1     1     0  0
+src/main/options/defaults.js                              1     1     0  0
+src/cli/defaults.js                                       1     1     0  0
+bin/wrap-stream-in-html.js                                1     0     0  0
+src/validate/matchers.js                                  1     3     0  0
+src/validate/utl.js                                       1     3     0  0
+```
+
+</details>
+
 ### `--config`/ `--validate`
 
 Validates against a list of rules in a configuration file. This defaults to a file
@@ -406,8 +621,14 @@ be in json format or a valid node module returning a rules object literal.
 dependency-cruise -x node_modules --config my.rules.json src spec
 ```
 
-> _Tip_: usually you don't need to specify the rules file. However if run
-> `depcruise --config src`, _src_ will be interpreted as the rules file.
+> _Caveat_: up to version 12, you needed to specify the `--config` command line
+> option in order for a config file to be used at all. As of version 13 picking
+> up a config file is the default, so you don't need to specify `--config` anymore
+> _unless_ you want to have an alternate name or location for it.
+> If you want to run _without_ a configuration file use --no-config
+
+> _Tip_: usually you don't need to specify the rules file after --config. However
+> if you run `depcruise --config src`, _src_ will be interpreted as the rules file.
 > Which is probably is not what you want. To prevent this, place `--`
 > after the last option, like so:
 >
@@ -455,6 +676,23 @@ For more information about writing rules see the [tutorial](rules-tutorial.md) a
 
 For an easy set up of both use [--init](#--init)
 
+#### null - no output, just an exit code
+
+This dummy 'reporter' will print _nothing_, not even when there are errors. It
+will exit with the exit code _number of violations with severity `error` found_,
+though. This reporter primarily exists to help in the development of
+dependency-cruiser.
+
+### `--no-config`
+
+Use this if you don't want to use a configuration file. Also overrides earlier
+specified --config (or --validate) options.
+
+> If you actually use this, I'm interested in your use case. Please drop an
+> [issue on GitHub](https://github.com/sverweij/dependency-cruiser/issues/new?assignees=&labels=&template=use-without-config.md&title=I+use+dependency-cruiser+without+a+configuration+file.+This+is+why:) or contact me on mastodon
+> ([@mcmeadow@mstdn.social](https://mstdn.social/@mcmeadow)) or twitter
+> ([@mcmeadow](https://twitter.com/mcmeadow)).
+
 ### `--init`
 
 This asks some questions and - depending on the answers - creates a dependency-cruiser
@@ -485,6 +723,30 @@ preset):</summary>
 | `no-duplicate-dep-types` | Warn if a dependency occurs in your package.json more than once (technically: has more than one dependency type) |
 
 </details>
+
+### `--metrics`
+
+Makes dependency-cruiser calculate stability metrics (number of dependents,
+number of dependencies and 'instability' (`# dependencies/ (# dependencies + # dependents)`))
+for all folders. These metrics are adapted from _Agile software development:
+principles, patterns, and practices_ by Robert C Martin (ISBN 0-13-597444-5).
+
+Currently this output is only reflected in the `json` and the
+`metrics` reporter. Some other reporters will follow suit later.
+
+- These metrics substitute 'components' and 'classes' from that Martin's book
+  with 'folders' and 'modules'; the closest relatives, that work for the most
+  programming styles in JavaScript (and its derivative languages).
+- For output-type `metrics` this command line switch is implied, so there's no
+  need to specify it there.
+- Not on by default as it's relatively resource intensive (especially when
+  dependency-cruiser doesn't already derives dependents of folders.)
+
+### `--no-metrics`
+
+Do not calculate metrics. You can use this to override an earlier set `--metrics`
+command line option or `metrics` option in a .dependency-cruiser.js configuration
+file.
 
 ### `--info` showing what alt-js are supported
 
@@ -529,9 +791,81 @@ Extensions:
 
 </details>
 
+### `--ignore-known`: ignore known violations
+
+> This feature was recently (september 2021) introduced. It is useful, well
+> tested, stable and it will stay. However, the file format and the ergonomics of
+> the command(s) to deal with known violations might still shift a bit _without_
+> dependency-cruiser getting a major version bump.
+>
+> The `err`, `err-long` and `err-html` reporters have been adapted to reflect
+> the results of this feature well. Other reporters to which it is relevant (e.g.
+> all of the `dot` family, `html`, `teamcity`) will follow in releases after
+> dependency-cruiser v10.3.0.
+
+With this option engaged dependency-cruiser will ignore known violations as saved
+in the file you pass it as a parameter. If you don't pass a filename dependency-cruiser
+will assume the known violations to live in a file called `.dependency-cruiser-known-violations.json`.
+
+You can generate a known violations file with the `baseline` reporter e.g. like so:
+
+```sh
+dependency-cruiser src --config --output-type baseline --output-to .dependency-cruiser-known-violations.json
+```
+
+... or with the [`depcruise-baseline`](#depcruise-baseline) command which simplifies this a bit:
+
+```sh
+# will assume a .dependency-cruiser.{js,cjs,json} to exist and will write
+# the baseline output to .dependency-cruiser-known-violations.json
+depcruise-baseline src
+```
+
+#### How dependency-cruiser ignores known violations
+
+For all violations dependency-cruiser finds in the known violations file it will
+lower the severity to `ignore`. It depends on the reporter how these show up. E.g.
+the `err`/ `err-long` reporters will hide all ignored violations, but add a
+warning if there's violations ignored:
+
+```
+✔ no dependency violations found (454 modules, 1078 dependencies cruised)
+⚠ 20 known violations ignored. Run with --no-ignore-known to see them.
+```
+
+#### When is this useful?
+
+When you first deploy dependency-cruiser in a large code base chances are it will
+detect quite some violations - even when it only uses the default set of rules
+that comes with `--init`. It will not always possible to fix all the violations
+right away. This means that any run of dependency-cruiser will show violations
+you already decided to fix later - possibly burying any new violations (which
+you probably want to avoid).
+
+With this option you can avoid that.
+
+### `--no-ignore-known`
+
+Don't ignore known violations. Use this if you want to override an `--ignore-known`
+option set earlier on the command line.
+
 ### `--help` / no parameters
 
-Running with no parameters gets you help.
+Running with no parameters or with `--help` gets you help. It doesn't show all
+options documented here in order to keep it inviting to use. The ones left out
+are:
+
+- the _implied_ ones (e.g. `--config` implies the existence of
+  a `--no-config` option).
+- ones that have an _alias_ to prevent a breaking change
+  (`--validate` is an alias for `--config`).
+- ones that have been superseded by better options but were left in for
+  backwards compatibility. E.g. `--max-depth` has been superseded by the
+  `--focus`/ `--focus-depth` and `--collapse` which are both more powerful
+  and mor to the point for most use cases.
+- those that better live in the configuration file, but are still cli
+  options for backwards compatibility (e.g. `--ts-config`, `--webpack-config`,
+  `--ts-pre-compilation-deps`, `--module-systems`, `--preserve-symlinks`)
 
 ## Options also available in dependency-cruiser configurations
 
@@ -573,7 +907,7 @@ dependency-cruise --include-only "^src" -T dot src | dot -T svg > internal-depen
 See [includeOnly](./options-reference.md#includeonly-only-include-modules-satisfying-a-pattern)
 in the options reference for more details.
 
-### `--focus`: show modules and their direct neighbours
+### `--focus`: show modules and their neighbours
 
 You can use this e.g. to inspect one module or folder and see what the direct
 dependencies are and which modules are direct dependents.
@@ -582,11 +916,95 @@ Takes a regular expression in the same fashion `--include-only`, `--exclude` and
 `--do-not-follow` do.
 
 ```sh
-dependency-cruise --include-only "^src" --focus "^src/main" -T dot src | dot -T svg > focus-on-main-dir-graph.svg
+dependency-cruise src --include-only "^src" --focus "^src/main" -T dot | dot -T svg > focus-on-main-dir-graph.svg
 ```
 
-See [focus](./options-reference.md#show-modules-matching-a-pattern---with-their-direct-neighbours)
+See [focus](./options-reference.md#focus-show-modules-matching-a-pattern---with-their-neighbours)
 in the options reference for more details.
+
+### `--focus-depth`: influence how many layers of neighbors --focus shows
+
+If you want to increase the number of layers of neighbors (transitive dependencies
+& dependents) the focus option shows as context, you can specify that with this
+command line switch. A value of 1 (which is also the default) means _direct neighbours
+only_. 2 also shows the neighbour's neighbours, etc. The value 0 means 'infinite'.
+
+```sh
+dependency-cruise src --include-only "^src" --focus "^src/main" --focus-depth 0 -T dot |\
+  dot -T svg > focus-on-main-dir-graph.svg
+```
+
+See [focus depth](./options-reference.md#adding-depth) in the options reference
+for more details
+
+### `--reaches`: show modules and their transitive dependents
+
+If you want to e.g. analyze what modules will directly or indirectly be affected
+by a change you make in one or modules you can use this option.
+
+Just like the filter options above, takes a regular expression:
+
+```sh
+dependency-cruise src --include-only "^src/report" --reaches "^src/report/utl/index.js" -T dot | dot -T svg > reaches-example.svg
+```
+
+See [reaches](./options-reference.md#reaches-show-modules-matching-a-pattern---with-everything-that-can-reach-them)
+in the options reference for more details.
+
+### `--highlight`: highlight modules
+
+This option takes a regular expression and reporters that recognize the
+highlight option[^1] will highlight the modules that match that regular
+expression.
+
+[^1]: Currently only _dot_ (and its variants) and _mermaid_.
+
+```sh
+dependency-cruise src --include-only "^src/report" --highlight "^src/report/utl/index.js" -T dot | dot -T svg > highlight-example.svg
+```
+
+This can be useful when you want to display what modules have changed since
+the last commit[^2]. Especially when the number of modules of your project is
+limited this can be more effective than using the `--reaches` option for the
+same.
+
+[^2]:
+    This uses [watskeburt](https://github.com/sverweij/watskeburt) which by default
+    generates a regular expression that includes all modules changed since the last
+    commit. Here we pass the `main` branch to it so we can see all modules that
+    make up the diff between that branch and wherever we are currently in the
+    git history.
+
+```sh
+dependency-cruise src --highlight "$(watskeburt main)" -T dot | dot -T svg > highlight-diff-example.svg
+```
+
+<details>
+<summary>Example output</summary>
+
+With --highlight it shows the whole code base (suitable when your codebase is not
+that big). Command used:
+
+```
+npx depcruise src types --include-only '^(src|types)' --highlight "$(watskeburt main)" --config --output-type dot | dot -T svg > with-highlight.svg
+```
+
+![shows all modules that make up watskeburt with changes to one module](./assets/with-highlight.svg)
+
+With --reaches it shows only part of the code base (suitable when your codebase
+is large). Command used:
+
+```
+npx depcruise src types --include-only '^(src|types)' --highlight "$(watskeburt main)" --config --output-type dot | dot -T svg > with-highlight.svg
+```
+
+![shows the one changed module, with all modules that can reach it](./assets/with-reaches.svg)
+
+</details>
+
+See [highlight](./options-reference.md#highlight-highlight-modules) in the options
+reference for more details, like how to adjust the attributes used for highlighting
+in the dot-like reporters.
 
 ### `--collapse`: summarize to folder depth or pattern
 
@@ -703,30 +1121,50 @@ stay in view when dependency-cruiser is done.
 <summary>Typical output</summary>
 
 ```
-  elapsed heapTotal  heapUsed after step...
-    712ms      72Mb      46Mb start of node process
-      2ms      72Mb      46Mb parsing options
-    100ms      73Mb      56Mb parsing rule set
-      0ms      73Mb      56Mb making sense of files and directories
-      0ms      73Mb      56Mb determining how to resolve
-   1874ms     158Mb     138Mb reading files
-      0ms     158Mb     138Mb analyzing
-     17ms     161Mb     131Mb analyzing: cycles
-      3ms     161Mb     132Mb analyzing: orphans
-    161ms     163Mb     140Mb analyzing: reachables
-      0ms     163Mb     140Mb analyzing: add focus (if any)
-     51ms     163Mb     135Mb analyzing: validations
-      2ms     163Mb     135Mb reporting
-      0ms     163Mb     135Mb really done (2924ms)
+ elapsed real          user        system         ∆ rss   ∆ heapTotal    ∆ heapUsed    ∆ external after step...
+------------- ------------- ------------- ------------- ------------- ------------- ------------- -------------
+        785ms         813ms          98ms    +132,384kB     +85,020kB     +62,483kB      +2,280kB start of node process
+         12ms          11ms           1ms      +1,148kB        +256kB        +785kB           0kB parsing options
+         79ms          18ms           5ms      +2,492kB        +548kB      +1,731kB        +541kB cache: check freshness with metadata
+        187ms         345ms          11ms     +18,620kB      +7,024kB      +9,037kB      -1,430kB parsing rule set
+          0ms           2ms           0ms          +8kB           0kB         +28kB           0kB determining how to resolve
+          0ms           1ms           0ms         +24kB           0kB          +9kB           0kB reading files
+         23ms          32ms           7ms        +724kB      +1,280kB     -12,023kB           0kB reading files: gathering initial sources
+      1,260ms       2,040ms         112ms     +50,152kB     +48,640kB     +51,344kB        +413kB reading files: visiting dependencies
+          0ms           0ms           0ms          +8kB           0kB          +3kB           0kB analyzing
+         13ms          33ms           0ms         +28kB           0kB      +6,083kB           0kB analyzing: cycles
+         27ms          59ms           2ms      +3,012kB      +2,816kB      +1,842kB        -157kB analyzing: dependents
+          1ms           1ms           0ms          +8kB           0kB         +46kB           0kB analyzing: orphans
+        292ms         384ms           8ms      +2,176kB      +2,048kB        +668kB           0kB analyzing: reachables
+          0ms           0ms           0ms         +12kB           0kB          +3kB           0kB analyzing: module metrics
+          0ms           0ms           0ms           0kB           0kB          +3kB           0kB analyzing: add focus (if any)
+         80ms         157ms           3ms        +560kB        +768kB      -3,119kB           0kB analyzing: validations
+          5ms          13ms           0ms         +56kB        +256kB        +960kB           0kB analyzing: comparing against known errors
+          6ms           7ms           1ms      +1,704kB      +1,088kB      +2,314kB        +541kB cache: save
+          5ms           5ms           0ms         +40kB           0kB        +596kB           0kB reporting
+          0ms           0ms           0ms           0kB           0kB          +5kB           0kB really done
+------------- ------------- ------------- ------------- ------------- ------------- ------------- -------------
+      2,775ms       3,920ms         248ms    +213,156kB    +149,744kB    +122,798kB      +2,188kB
 ```
+
+Number formatting takes place with the `Intl` API, so in your locale the numbers
+and units might look slightly different.
 
 </details>
 
 #### none (the default when you don't pass --progress )
 
-Make sure dependency-cruiser doesn't print any feedback. Usefull if you want to
+Make sure dependency-cruiser doesn't print any feedback. Useful if you want to
 override the progress option configured in a configuration file (currently
 an undocumented feature that is subject to change).
+
+### `--no-progress`: don't show feedback on what dependency-cruiser is doing
+
+The equivalent of `--progress none`.
+
+As showing no progress is dependency-cruiser's default the only use for this
+option is to override a `progress` setting from a configuration file or a
+`--progress` command line option set earlier on the command line.
 
 ### `--prefix` prefixing links
 
@@ -788,6 +1226,61 @@ to `false` (which is also nodejs' default behavior since release 6).
 You'll typically want to set this in the configuration file with the [preserveSymlinks](./options-reference.md#preservesymlinks)
 option.
 
+### `--cache`: use a cache to speed up cruising (experimental)
+
+> :warning: the cache feature is _experimental_. It _is_ significantly faster
+> and it _is_ tested, but the interface & format might be changing without
+> dependency-cruiser getting a major bump.
+
+> Available from version 11.14.0.
+
+With `--cache` you instruct dependency-cruiser to use a cache. When you don't
+specify a location it uses `node_modules/.cache/dependency-cruiser` as the
+folder for the cache.
+
+Dependency-cruiser will use the cache as long as it's not invalidated, which
+happens when
+
+- changes to files that would be part of a cruise have happened.
+  This includes modifications of files already included in the earlier cruise,
+  new files, file deletions and file renaming. By default dependency-cruiser
+  uses `git` to do this (see `--cache-strategy` below for other options).
+- The parameters/ options of the cruises are still "compatible".
+  The rule of thumb is that if the _existing_ cache has a broader scope than
+  the _new_ one, the cruises are compatible and the new cruise can use the
+  cache. Currently dependency-cruiser takes a simplified approach to this:
+  - if the arguments are not equal the cache is not valid anymore
+  - if the cache was created as the result of a filter (e.g. _includeOnly_,
+    _reaches_ or _collapse_) the new cruise can be served from the cache when
+    the filters are exactly the same.
+  - if the cache was created without a filter, but the new cruise includes one,
+    the new cruise _can_ be served from the cache.
+
+### `--cache-strategy`: influence how the cache functionality detects changes (experimental)
+
+> :warning: this is part of the _experimental_ cache feature. Especially the
+> 'content' cache strategy is quite new. The feature _is_ tested and works, but
+> interface & format might change without dependency-cruiser getting a major
+> bump.
+
+> Available from version 12.5.0
+
+With this option you can tell dependency-cruiser how it should detect whether
+files have changed. The default (`metadata`) use git for this - it is the fastest
+and most reliable of the two. The other one (`content`) is there in case you
+don't have git available or are working on a shallow clone of your repository
+(which might be the only practical way on a continuous integration server). The
+`content` strategy looks at the content of the files.
+
+When you don't pass --cache-strategy (and don't specify a `strategy` in the
+`cache` option in you .dependency-cruiser.js) the strategy defaults to `metadata`.
+
+### `--no-cache`: switch off caching
+
+This overrides any `--cache`, `--cache-strategy` options set earlier on the
+command line as well as the [`cache`](./options-reference.md#cache)
+configuration option.
+
 ## depcruise-fmt
 
 `depcruise-fmt` is a separate command line program, that takes the (json)
@@ -819,7 +1312,7 @@ depcruise-fmt -T dot cruise_result.json | dot -T svg > dependency-graph.svg
 ### filters
 
 You can also use the filters `--focus`, `--include-only` and `--exclude` to peruse
-parts of the dependency-graph. This could be useful for chopping up humoungous
+parts of the dependency-graph. This could be useful for chopping up humongous
 graphs efficiently, or to quickly find the uses of a module:
 
 ```sh
@@ -828,15 +1321,31 @@ depcruise-fmt -T dot --focus "^src/main" cruise_result.json | dot -T svg > main.
 depcruise-fmt -T dot --focus "^src/juggle" cruise_result.json | dot -T svg > juggle.svg
 depcruise-fmt -T dot --include-only "^src/the-law" cruise_result.json | dot -T svg > the-law.svg
 
-## or to find dependencies going into or departing from the spelunkme module
+## or to find dependencies going into or departing from the spelunk-me module
 ## and emitting them to stdout:
-depcruise-fmt -T text --focus "^src/main/spelunkme\\.ts$" cruise_result.json
+depcruise-fmt -T text --focus "^src/main/spelunk-me\\.ts$" cruise_result.json
 ```
+
+### highlight
+
+The `--highlight` option is also available in case you want to just highlight
+modules without filtering them. See the [--highlight](#highlight-highlight-modules)
+documentation of the regular depcruise command for more information.
 
 ### collapse/ summarize
 
 Summarize or collapse to either a folder depth or (if you're feeling fancy) a regular
 expression. It works the same as the regular depcruise command's [`--collapse`](#--collapse-summarize-to-folder-depth-or-pattern) option.
+
+### prefix
+
+To enable different prefixes on the same depcruise run, you can uses the `--prefix`
+option to set (or override) the prefix used in e.g. the `err-html` and the
+`dot`-like reporters. It works the same as depcruise's
+[option of the same name](https://github.com/sverweij/dependency-cruiser/blob/develop/doc/cli.md#--prefix-prefixing-links)
+
+See [prefix](./options-reference.md#prefix-prefix-links-in-reports) in the options
+reference for details.
 
 ### getting non-zero exit codes
 
@@ -861,7 +1370,7 @@ Options:
   -f, --output-to <file>      file to write output to; - for stdout (default:
                               "-")
   -T, --output-type <type>    output type; e.g. err, err-html, dot, ddot, archi,
-                              flat or json (default: "err")
+                              flat, baseline or json (default: "err")
   -I, --include-only <regex>  only include modules matching the regex
   -F, --focus <regex>         only include modules matching the regex + their
                               direct neighbours
@@ -878,11 +1387,39 @@ Options:
   -h, --help                  display help for command
 ```
 
+### depcruise-baseline
+
+To create a baseline of known violations. You can use the resulting file to tell
+regular dependency-cruiser you want to ignore them for now and to only focus
+on new ones.
+
+> Shortcut for `depcruise -c -T baseline -f .dependency-cruiser-known-violations.json`
+> which might be a bit of an elaborate incantation for generating a list
+> of known violations.
+
+If your sources & test live in `src`, `test` and you use the default filenames
+for the dependency-cruiser configuration and known violations (recommended)
+then...
+
+```
+depcruise-baseline src test
+```
+
+... will generate the baseline of known violations to .dependency-cruiser-known-violations.json.
+
+The two command line options exist in case you want these files to live in
+different spots; `--config` to specify where the config file lives, `--output-to`
+to write to an alternative output location.
+
 ## depcruise-wrap-stream-in-html
 
 With `depcruise-wrap-stream-in-html` you can wrap the graphical output of
-GraphViz dot into html that is geared to make the graph easier to use. It a.o.
-adds highlight-on-hover.
+GraphViz dot into html that is geared to make the graph easier to use. It adds a.o.:
+
+- highlighting dependencies on hover
+- the ability to 'pin' that highlight with a left mouse click ("on context menu").
+  Can be cleared with a left mouse click on something not a module or dependency
+  or by pressing the _Escape_ key.
 
 <img width="799" alt="highlight on hover" src="assets/highlight-on-hover.png">
 

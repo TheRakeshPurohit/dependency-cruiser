@@ -1,11 +1,23 @@
 import { ICruiseOptions } from "./options";
 import { IFlattenedRuleSet } from "./rule-set";
-import {
-  DependencyType,
-  ModuleSystemType,
-  SeverityType,
-  ProtocolType,
-} from "./shared-types";
+import { DependencyType, ModuleSystemType, ProtocolType } from "./shared-types";
+import { IViolation } from "./violations";
+import { IRuleSummary } from "./rule-summary";
+import { IChange } from "watskeburt";
+
+export interface IRevisionChange extends IChange {
+  checksum: string;
+}
+
+/**
+ * caching revisionData. doc and proper naming will follow
+ */
+export interface IRevisionData {
+  SHA1: string;
+  changes: IRevisionChange[];
+  args: string[];
+  rulesFile: string;
+}
 
 export interface ICruiseResult {
   /**
@@ -13,9 +25,22 @@ export interface ICruiseResult {
    */
   modules: IModule[];
   /**
+   * A list of folders, as derived from the detected modules, with for each
+   * folder a bunch of metrics (adapted from 'Agile software development:
+   * principles, patterns, and practices' by Robert C Martin (ISBN 0-13-597444-5).
+   * Note: these metrics substitute 'components' and 'classes' from that book
+   * with 'folders' and 'modules'; the closest relatives that work for the most
+   * programming styles in JavaScript (and its derivative languages).
+   */
+  folders?: IFolder[];
+  /**
    * Data summarizing the found dependencies
    */
   summary: ISummary;
+  /**
+   * caching revisionData. doc and proper naming will follow
+   */
+  revisionData?: IRevisionData;
 }
 
 export interface IModule {
@@ -48,8 +73,8 @@ export interface IModule {
   couldNotResolve?: boolean;
   /**
    * the type of inclusion - local, core, unknown (= we honestly don't know), undetermined (=
-   * we didn't bother determining it) or one of the npm dependencies defined in a package.jsom
-   * ('npm' for 'depenencies', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-no-pkg' for
+   * we didn't bother determining it) or one of the npm dependencies defined in a package.json
+   * ('npm' for 'dependencies', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-no-pkg' for
    * development, optional, peer dependencies and dependencies in node_modules but not in
    * package.json respectively)
    */
@@ -65,13 +90,21 @@ export interface IModule {
    */
   license?: string;
   /**
-   * 'true' if the file name of this module matches the doNotFollow regular expression
+   * 'true' if the file name of this module matches the 'doNotFollow' regular expression
    */
   matchesDoNotFollow?: boolean;
   /**
-   * 'true' if the file name of this module matches the focus regular expression
+   * 'true' if the file name of this module matches the 'focus' filter regular expression
    */
   matchesFocus?: boolean;
+  /**
+   * 'true' if the file name of this module matches the 'reaches' filter regular expression
+   */
+  matchesReaches?: boolean;
+  /**
+   * 'true' if the file name of this module matches the 'highlight' regular expression
+   */
+  matchesHighlight?: boolean;
   /**
    * 'true' if this module does not have dependencies, and no module has it as a dependency
    */
@@ -97,6 +130,21 @@ export interface IModule {
    * purposes - it will not be present after a regular cruise.
    */
   consolidated?: boolean;
+  /**
+   * "number of dependents/ (number of dependents + number of dependencies)
+   * A measure for how stable the module is; ranging between 0 (completely
+   * stable module) to 1 (completely instable module). Derived from Uncle
+   * Bob's instability metric - but applied to a single module instead of
+   * to a group of them. This attribute is only present when dependency-cruiser
+   * was asked to calculate metrics.
+   */
+  instability?: number;
+  /**
+   * checksum of the contents of the module. This attribute is currently only
+   * available when the cruise was executed with caching and the cache strategy
+   * is 'content'.
+   */
+  checksum?: string;
 }
 
 export interface IDependency {
@@ -111,7 +159,7 @@ export interface IDependency {
    */
   coreModule: boolean;
   /**
-   * 'true' if dependency-cruiser could not resulve the module name in the source code to a
+   * 'true' if dependency-cruiser could not resolve the module name in the source code to a
    * file name or core module. 'false' in all other cases.
    */
   couldNotResolve: boolean;
@@ -123,6 +171,13 @@ export interface IDependency {
    */
   preCompilationOnly?: boolean;
   /**
+   * 'true' when the module included the module explicitly as type only with the
+   * `type` keyword e.g. `import type { IThingus } from 'thing'`. Dependency-cruiser
+   * will only specify this attribute for TypeScript and when the 'tsPreCompilationDeps'
+   * option has either the value `true` or `"specify"`.
+   */
+  typeOnly?: boolean;
+  /**
    * If following this dependency will ultimately return to the source (circular === true),
    * this attribute will contain an (ordered) array of module names that shows (one of) the
    * circular path(s)
@@ -130,8 +185,8 @@ export interface IDependency {
   cycle?: string[];
   /**
    * the type of inclusion - local, core, unknown (= we honestly don't know), undetermined (=
-   * we didn't bother determining it) or one of the npm dependencies defined in a package.jsom
-   * ('npm' for 'depenencies', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-no-pkg' for
+   * we didn't bother determining it) or one of the npm dependencies defined in a package.json
+   * ('npm' for 'dependencies', 'npm-dev', 'npm-optional', 'npm-peer', 'npm-no-pkg' for
    * development, optional, peer dependencies and dependencies in node_modules but not in
    * package.json respectively)
    */
@@ -199,27 +254,11 @@ export interface IDependency {
    * will be in the 'rule' object at the same level.
    */
   valid: boolean;
-}
-
-/**
- * If there was a rule violation (valid === false), this object contains the name of the
- * rule and severity of violating it.
- */
-export interface IRuleSummary {
   /**
-   * The (short, eslint style) name of the violated rule. Typically something like
-   * 'no-core-punycode' or 'no-outside-deps'.
+   * the (de-normalized) instability of the dependency - also available in
+   * the module on the 'to' side of this dependency
    */
-  name: string;
-  /**
-   * How severe a violation of a rule is. The 'error' severity will make some reporters return
-   * a non-zero exit code, so if you want e.g. a build to stop when there's a rule violated:
-   * use that. The absence of the 'ignore' severity here is by design; ignored rules don't
-   * show up in the output.
-   *
-   * Severity to use when a dependency is not in the 'allowed' set of rules. Defaults to 'warn'
-   */
-  severity: SeverityType;
+  instability: number;
 }
 
 export interface IReachable {
@@ -247,7 +286,7 @@ export interface IReachesModule {
    */
   source: string;
   /**
-   * The path along wich the 'to' module is reachable from this one.
+   * The path along which the 'to' module is reachable from this one.
    */
   via: string[];
 }
@@ -271,6 +310,10 @@ export interface ISummary {
    * the number of errors in the dependencies
    */
   error: number;
+  /**
+   * the number of ignored notices in the dependencies
+   */
+  ignore: number;
   /**
    * the number of informational level notices in the dependencies
    */
@@ -315,70 +358,91 @@ export interface IOptions extends ICruiseOptions {
    * The rules file used to validate the dependencies (if any)
    */
   rulesFile?: string;
-  /**
-   * The TypeScript configuration file used (if any)
-   */
-  tsConfig?: ITsConfig;
-  /**
-   * The webpack configuration options used for the cruise
-   */
-  webpackConfig?: IWebpackConfig;
-  /**
-   * The Babel configuration file used (if any)
-   */
-  babelConfig?: IBabelConfig;
 }
 
-export interface ITsConfig {
-  fileName?: string;
-}
-
-export interface IBabelConfig {
-  fileName?: string;
-}
-
-/**
- * The webpack configuration options used for the cruise
- */
-export interface IWebpackConfig {
+export interface IFolderDependency {
   /**
-   * The arguments used
+   * the (resolved) name of the dependency
    */
-  arguments?: { [key: string]: any };
+  name: string;
   /**
-   * The 'env' parameters passed
+   * 'true' if this folder dependency violated a rule; 'false' in all other
+   * cases. The violated rule will be in the 'rules' object at the same level.
    */
-  env?: WebpackEnvType;
+  valid: boolean;
   /**
-   * The name of the webpack configuration file used
+   * the instability of the dependency (de-normalized - this is a duplicate of
+   * the one found in the instability of the folder with the same name)
    */
-  fileName?: string;
-}
-
-/**
- * The 'env' parameters passed
- */
-export type WebpackEnvType = { [key: string]: any } | string;
-
-export interface IViolation {
+  instability?: number;
   /**
-   * The violated rule
+   * 'true' if following this dependency will ultimately return to the source, false in all
+   * other cases
    */
-  rule: IRuleSummary;
+  circular: boolean;
   /**
-   * The from part of the dependency this violation is about
-   */
-  from: string;
-  /**
-   * The to part of the dependency this violation is about
-   */
-  to: string;
-  /**
-   * The circular path if the violation is about circularity
+   * If following this dependency will ultimately return to the source (circular === true),
+   * this attribute will contain an (ordered) array of module names that shows (one of) the
+   * circular path(s)
    */
   cycle?: string[];
   /**
-   * The path from the from to the to if the violation is transitive
+   * an array of rules violated by this dependency - left out if the dependency
+   * is valid
    */
-  via?: string[];
+  rules?: IRuleSummary[];
 }
+
+export interface IFolderDependent {
+  /**
+   * name ('path') of the dependent
+   */
+  name: string;
+}
+
+export interface IFolder {
+  /**
+   * The name of the folder. FOlder names are normalized to posix (so
+   * separated by forward slashes e.g.: src/things/morethings)
+   */
+  name: string;
+  /**
+   * List of folders depending on this folder
+   */
+  dependents?: IFolderDependent[];
+  /**
+   * List of folders this folder depends upon
+   */
+  dependencies?: IFolderDependency[];
+  /**
+   * The total number of modules detected in this folder and its sub-folders
+   */
+  moduleCount: number;
+  /**
+   * The number of modules outside this folder that depend on modules
+   * within this folder. Only present when dependency-cruiser was
+   * "asked to calculate it.
+   */
+  afferentCouplings?: number;
+  /**
+   * The number of modules inside this folder that depend on modules
+   * outside this folder. Only present when dependency-cruiser was
+   * asked to calculate it.
+   */
+  efferentCouplings?: number;
+  /**
+   * efferentCouplings/ (afferentCouplings + efferentCouplings)
+   *
+   * A measure for how stable the folder is; ranging between 0
+   * (completely stable folder) to 1 (completely instable folder)
+   * Note that while 'instability' has a negative connotation it's also
+   * (unavoidable in any meaningful system. It's the basis of Martin's
+   * variable component stability principle: 'the instability of a folder
+   * should be larger than the folders it depends on'. Only present when
+   * dependency-cruiser was asked to calculate it.,
+   */
+  instability?: number;
+}
+
+export * from "./violations";
+export * from "./rule-summary";

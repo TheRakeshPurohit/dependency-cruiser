@@ -1,8 +1,8 @@
 import { expect } from "chai";
 
-import getDependents from "../../../../src/enrich/derive/dependents/get-dependents.js";
+import getDependents from "../../../../src/enrich/derive/dependents/get-dependents.mjs";
 
-describe("enrich/derive/dependents/get-dependents", () => {
+describe("[U] enrich/derive/dependents/get-dependents", () => {
   it("empty module without a source name & no modules yield no modules", () => {
     expect(getDependents({}, [])).to.deep.equal([]);
   });

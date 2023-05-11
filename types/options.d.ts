@@ -1,19 +1,54 @@
-import { IReporterOptions } from "./reporter-options";
-import { IFlattenedRuleSet } from "./rule-set";
-import { ModuleSystemType, OutputType } from "./shared-types";
+import { IBaselineViolations } from "./baseline-violations";
+import { ICacheOptions } from "./cache-options";
 import {
   IDoNotFollowType,
   IExcludeType,
   IFocusType,
+  IHighlightType,
   IIncludeOnlyType,
+  IReachesType,
 } from "./filter-types";
+import { IReporterOptions } from "./reporter-options";
+import { IFlattenedRuleSet } from "./rule-set";
+import { ModuleSystemType, OutputType } from "./shared-types";
 
 export type ExternalModuleResolutionStrategyType = "node_modules" | "yarn-pnp";
 export type ProgressType =
-  | /** yo with the banjo*/
-  "cli-feedback" /** mean with the mandoline */
+  | "cli-feedback"
   | "performance-log"
+  | "ndjson"
   | "none";
+
+export interface ITsConfig {
+  fileName?: string;
+}
+
+export interface IBabelConfig {
+  fileName?: string;
+}
+
+/**
+ * The 'env' parameters passed to webpack, if any
+ */
+export type WebpackEnvType = { [key: string]: any } | string;
+
+/**
+ * The webpack configuration options used for the cruise
+ */
+export interface IWebpackConfig {
+  /**
+   * The arguments used
+   */
+  arguments?: { [key: string]: any };
+  /**
+   * The 'env' parameters passed
+   */
+  env?: WebpackEnvType;
+  /**
+   * The name of the webpack configuration file used
+   */
+  fileName?: string;
+}
 
 export interface ICruiseOptions {
   /**
@@ -57,6 +92,25 @@ export interface ICruiseOptions {
    */
   focus?: string | string[] | IFocusType;
   /**
+   * dependency-cruiser will include modules matching this regular expression
+   * in its output, as well as _any_ module that reaches them - either directly
+   * or via via.
+   */
+  reaches?: string | string[] | IReachesType;
+  /**
+   * dependency-cruiser will mark modules matching this regular expression
+   * as 'highlighted' in its output
+   */
+  highlight?: string | string[] | IHighlightType;
+  /*
+   * baseline of known validations. Typically you'd specify these in a file called
+   * .dependency-cruiser-known-violations.json (which you'd generate with the --outputType
+   * 'baseline') - and which is easy to keep up to date. In a pinch you can specify
+   * them here as well. The known violations in .dependency-cruiser-known-violations.json
+   * always take precedence.
+   */
+  knownViolations?: IBaselineViolations;
+  /**
    * collapse a to a folder depth by passing a single digit (e.g. 2).
    * When passed a regex collapse to that pattern
    *
@@ -74,7 +128,7 @@ export interface ICruiseOptions {
    * and the collapse options offer better, more reliable and more
    * understandable results.
    */
-  maxDepth?: number;
+  maxDepth?: number | string;
   /**
    * an array of module systems to use for following dependencies;
    * defaults to ["es6", "cjs", "amd"]
@@ -115,6 +169,14 @@ export interface ICruiseOptions {
    */
   tsPreCompilationDeps?: boolean | "specify";
   /**
+   * List of extensions to scan _in addition_ to the extensions already
+   * covered by any available parser. Dependency-cruiser will consider files
+   * ending in these extensions but it will _not_ examine its content or
+   * derive any of their dependencies
+   * Sample value: [".jpg", ".png", ".json"]
+   */
+  extraExtensionsToScan?: string[];
+  /**
    * if true leave symlinks untouched, otherwise use the realpath.
    * Defaults to `false` (which is also nodejs's default behavior
    * since version 6)
@@ -144,7 +206,7 @@ export interface ICruiseOptions {
   /*
    * List of strings you have in use in addition to cjs/ es6 requires
    * & imports to declare module dependencies. Use this e.g. if you've
-   * redeclared require (`const want = require`), use a require-wrapper
+   * re-declared require (`const want = require`), use a require-wrapper
    * (like semver-try-require) or use window.require as a hack
    *
    * Defaults to `[]`
@@ -154,6 +216,31 @@ export interface ICruiseOptions {
    * Options to tweak the output of reporters
    */
   reporterOptions?: IReporterOptions;
+
+  /**
+   * TypeScript project file ('tsconfig.json') to use for (1) compilation
+   * and (2) resolution (e.g. with the paths property)",
+   */
+  tsConfig?: ITsConfig;
+
+  /**
+   * Webpack configuration to use to get resolve options from
+   */
+  webpackConfig?: IWebpackConfig;
+
+  /**
+   * Babel configuration (e.g. '.babelrc.json') to use.
+   */
+  babelConfig?: IBabelConfig;
+
+  /**
+   * Overrides the parser dependency-cruiser will use - EXPERIMENTAL
+   *
+   * Note that you'll _very_ likely not need this - dependency-cruiser will
+   * typically sort out what the best parser for the job is out of the ones
+   * available
+   */
+  parser?: "acorn" | "tsc" | "swc";
 
   /**
    * Options used in module resolution that for dependency-cruiser's
@@ -184,9 +271,21 @@ export interface ICruiseOptions {
      * attribute. E.g. when you're 100% sure you _only_ have typescript & json
      * and nothing else you can pass `['.ts', '.json']` - which can lead to performance
      * gains on systems with slow i/o (like ms-windows), especially when your
-     * tsconfig contains paths/ aliasses.
+     * tsconfig contains paths/ aliases.
      */
     extensions?: string[];
+    /**
+     * A list of main fields in manifests (package.json s). Typically you'd want
+     * to keep leave this this on its default (['main']) , but if you e.g. use
+     * external packages that only expose types, and you still want references
+     * to these types to be resolved you could expand this to ['main', 'types']
+     */
+    mainFields?: string[];
+    /**
+     * A list of files to consider 'main' files, defaults to ['index']. Only set
+     * this when you have really special needs that warrant it.
+     */
+    mainFiles?: string[];
     /**
      * Options to pass to the resolver (webpack's 'enhanced resolve') regarding
      * caching.
@@ -194,7 +293,7 @@ export interface ICruiseOptions {
     cachedInputFileSystem?: {
       /**
        * The number of milliseconds [enhanced-resolve](webpack/enhanced-resolve)'s
-       * cached file system should use for cache duration. Typicially you won't
+       * cached file system should use for cache duration. Typically you won't
        * have to touch this - the default works well for repos up to 5000 modules/
        * 20000 dependencies, and likely for numbers above as well.
        *
@@ -209,6 +308,7 @@ export interface ICruiseOptions {
       cacheDuration: number;
     };
   };
+
   /**
    * Whether or not to show progress feedback when the command line
    * app is running.
@@ -221,5 +321,73 @@ export interface ICruiseOptions {
      * of each major step to stderr.
      */
     type: ProgressType;
+    /**
+     * The maximum log level to emit messages at. Ranges from OFF (-1, don't " +
+     * show any messages), via SUMMARY (40), INFO (50), DEBUG (60) all the " +
+     * way to show ALL messages (99)."
+     */
+    maximumLevel?: -1 | 40 | 50 | 60 | 70 | 80 | 99;
   };
+
+  /**
+   * When this flag is set to true, dependency-cruiser will calculate (stability) metrics
+   * for all modules and folders. Defaults to false.
+   */
+  metrics?: boolean;
+
+  /**
+   * - false: don't use caching.
+   * - true or empty object: use caching with the default settings
+   * - a string (deprecated): cache in the folder denoted by the string & use the
+   *   default caching strategy. This is deprecated - instead pass a cache object
+   *   e.g. ```{ folder: 'your/cache/location' }```
+   *
+   * Defaults to false.
+   * When caching is switched on the default cache folder is 'node_modules/.cache/dependency-cruiser/'
+   */
+  cache?: boolean | string | Partial<ICacheOptions>;
+}
+
+export interface IFormatOptions {
+  /**
+   * regular expression describing which dependencies the function
+   * should not cruise
+   */
+  exclude?: string | string[] | IExcludeType;
+  /**
+   * regular expression describing which dependencies the function
+   * should cruise - anything not matching this will be skipped
+   */
+  includeOnly?: string | string[] | IIncludeOnlyType;
+  /**
+   * dependency-cruiser will include modules matching this regular expression
+   * in its output, as well as their neighbours (direct dependencies and
+   * dependents)
+   */
+  focus?: string | string[] | IFocusType;
+  /**
+   * dependency-cruiser will include modules matching this regular expression
+   * in its output, as well as _any_ module that reaches them - either directly
+   * or via via.
+   */
+  reaches?: string | string[] | IReachesType;
+  /**
+   * collapse a to a folder depth by passing a single digit (e.g. 2).
+   * When passed a regex collapse to that pattern
+   *
+   * E.g. ^packages/[^/]+/ would collapse to modules/ folders directly under
+   * your packages folder.
+   */
+  collapse?: string | number;
+  /**
+   * one of "json", "html", "dot", "csv" or "err". When left
+   * out the function will return a javascript object as dependencies
+   */
+  outputType?: OutputType;
+  /**
+   * a string to insert before links (in dot/ svg output) so with
+   * cruising local dependencies it is possible to point to sources
+   * elsewhere (e.g. in an online repository)
+   */
+  prefix?: string;
 }

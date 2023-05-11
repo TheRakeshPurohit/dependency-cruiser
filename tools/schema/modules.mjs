@@ -46,13 +46,23 @@ export default {
         matchesDoNotFollow: {
           type: "boolean",
           description:
-            "'true' if the file name of this module matches the doNotFollow regular " +
+            "'true' if the file name of this module matches the doNotFollow filter regular " +
             "expression",
         },
         matchesFocus: {
           type: "boolean",
           description:
-            "'true' if the file name of this module matches the focus regular expression",
+            "'true' if the file name of this module matches the focus filter regular expression",
+        },
+        matchesReaches: {
+          type: "boolean",
+          description:
+            "'true' if the file name of this module matches the 'reaches' filter regular expression",
+        },
+        matchesHighlight: {
+          type: "boolean",
+          description:
+            "'true' if the file name of this module matches the 'highlight' regular expression",
         },
         coreModule: {
           type: "boolean",
@@ -71,7 +81,7 @@ export default {
           description:
             "the type of inclusion - local, core, unknown (= we honestly don't " +
             "know), undetermined (= we didn't bother determining it) or one of " +
-            "the npm dependencies defined in a package.jsom ('npm' for 'depenencies', " +
+            "the npm dependencies defined in a package.json ('npm' for 'dependencies', " +
             "'npm-dev', 'npm-optional', 'npm-peer', 'npm-no-pkg' for development, " +
             "optional, peer dependencies and dependencies in node_modules but not " +
             "in package.json respectively)",
@@ -116,6 +126,23 @@ export default {
             "entity a Module represents might be several modules at the same time. " +
             "This attribute is set by tools that consolidate modules for reporting " +
             "purposes - it will not be present after a regular cruise.",
+        },
+        instability: {
+          type: "number",
+          description:
+            "number of dependents/ (number of dependents + number of dependencies)" +
+            "A measure for how stable the module is; ranging between 0 (completely " +
+            "stable module) to 1 (completely instable module). Derived from Uncle " +
+            "Bob's instability metric - but applied to a single module instead of " +
+            "to a group of them. This attribute is only present when dependency-cruiser " +
+            "was asked to calculate metrics.",
+        },
+        checksum: {
+          type: "string",
+          description:
+            "checksum of the contents of the module. This attribute is currently " +
+            "only available when the cruise was executed with caching and the cache " +
+            "strategy is 'content'.",
         },
       },
     },
@@ -165,7 +192,7 @@ export default {
               via: {
                 type: "array",
                 description:
-                  "The path along wich the 'to' module is reachable from this one.",
+                  "The path along which the 'to' module is reachable from this one.",
                 items: { type: "string" },
               },
             },

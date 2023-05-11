@@ -68,6 +68,13 @@ export default {
         comment: {
           type: "string",
         },
+        scope: {
+          type: "string",
+          description:
+            "What to apply the rule to - modules (the default) or folders. " +
+            "Currently ignored for 'allowed' rules, defaulting to 'module'",
+          enum: ["module", "folder"],
+        },
         from: {
           $ref: "#/definitions/FromRestrictionType",
         },
@@ -83,6 +90,13 @@ export default {
       properties: {
         comment: {
           type: "string",
+        },
+        scope: {
+          type: "string",
+          description:
+            "What to apply the rule to - modules (the default) or folders. " +
+            "Currently ignored for 'allowed' rules, defaulting to 'module'",
+          enum: ["module", "folder"],
         },
         from: {
           $ref: "#/definitions/ReachabilityFromRestrictionType",
@@ -122,6 +136,20 @@ export default {
         severity: {
           $ref: "#/definitions/SeverityType",
         },
+        scope: {
+          type: "string",
+          description:
+            "What to apply the rule to - modules (the default) or folders. Switching " +
+            "the scope to 'folder' can be useful in rules where this makes a difference " +
+            "like those regarding circular dependencies or instability. Two things " +
+            "to note when you decide to use 'folder' level scope: (1) the 'scope' attribute " +
+            "is experimental - the way to indicate the scope of a rule can change " +
+            "over time without dependency-cruiser undergoing a major bump. (2) Only " +
+            "the to.moreUnstable, to.circular, and path (both from and to) attributes " +
+            "work at the moment. Other attributes will follow suit in releases " +
+            "after 11.6.0.",
+          enum: ["module", "folder"],
+        },
         comment: {
           type: "string",
           description:
@@ -146,6 +174,13 @@ export default {
         severity: {
           $ref: "#/definitions/SeverityType",
         },
+        scope: {
+          type: "string",
+          description:
+            "What to apply the rule to - modules (the default) or folders. " +
+            "Currently ignored for DependentsForbiddenRules, defaulting to 'module'",
+          enum: ["module", "folder"],
+        },
         comment: {
           type: "string",
         },
@@ -168,6 +203,13 @@ export default {
         severity: {
           $ref: "#/definitions/SeverityType",
         },
+        scope: {
+          type: "string",
+          description:
+            "What to apply the rule to - modules (the default) or folders. " +
+            "Currently ignored for ReachabilityForbiddenRules, defaulting to 'module'",
+          enum: ["module", "folder"],
+        },
         comment: {
           type: "string",
         },
@@ -189,6 +231,13 @@ export default {
         },
         severity: {
           $ref: "#/definitions/SeverityType",
+        },
+        scope: {
+          type: "string",
+          description:
+            "What to apply the rule to - modules (the default) or folders. " +
+            "Currently ignored for RequiredRules, defaulting to 'module'",
+          enum: ["module", "folder"],
         },
         comment: {
           type: "string",

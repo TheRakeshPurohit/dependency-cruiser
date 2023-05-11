@@ -1,23 +1,23 @@
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect } from "chai";
-import normalize from "../../../src/main/options/normalize.js";
-import normalizeResolveOptions from "../../../src/main/resolve-options/normalize.js";
+import { normalizeCruiseOptions } from "../../../src/main/options/normalize.mjs";
+import normalizeResolveOptions from "../../../src/main/resolve-options/normalize.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-describe("main/resolve-options/normalize", () => {
+describe("[I] main/resolve-options/normalize", () => {
   const lDefaultNoOfResolveOptions = 10;
-  const TEST_TSCONFIG = join(__dirname, "..", "fixtures", "tsconfig.test.json");
+  const TEST_TSCONFIG = join(__dirname, "__mocks__", "tsconfig.test.json");
   const lTsconfigContents = {};
   const lTsconfigContentsWithBaseURLAndPaths = {
     options: { baseUrl: "", paths: { "*": ["lalala/*"] } },
   };
 
-  it("comes with a set of defaults when passed with no options at all", () => {
-    const lNormalizedOptions = normalizeResolveOptions(
+  it("comes with a set of defaults when passed with no options at all", async () => {
+    const lNormalizedOptions = await normalizeResolveOptions(
       {},
-      normalize.normalizeCruiseOptions({})
+      normalizeCruiseOptions({})
     );
 
     expect(Object.keys(lNormalizedOptions).length).to.equal(
@@ -31,10 +31,10 @@ describe("main/resolve-options/normalize", () => {
     expect(lNormalizedOptions.useSyncFileSystemCalls).to.equal(true);
   });
 
-  it("does not add the typescript paths plugin to the plugins if a tsConfig is specified without a baseUrl", () => {
-    const lNormalizedOptions = normalizeResolveOptions(
+  it("does not add the typescript paths plugin to the plugins if a tsConfig is specified without a baseUrl", async () => {
+    const lNormalizedOptions = await normalizeResolveOptions(
       {},
-      normalize.normalizeCruiseOptions({
+      normalizeCruiseOptions({
         ruleSet: { options: { tsConfig: { fileName: TEST_TSCONFIG } } },
       }),
       lTsconfigContents
@@ -52,10 +52,10 @@ describe("main/resolve-options/normalize", () => {
     expect(lNormalizedOptions.useSyncFileSystemCalls).to.equal(true);
   });
 
-  it("adds the typescript paths plugin to the plugins if a tsConfig is specified with a baseUrl and actual paths", () => {
-    const lNormalizedOptions = normalizeResolveOptions(
+  it("adds the typescript paths plugin to the plugins if a tsConfig is specified with a baseUrl and actual paths", async () => {
+    const lNormalizedOptions = await normalizeResolveOptions(
       {},
-      normalize.normalizeCruiseOptions({
+      normalizeCruiseOptions({
         ruleSet: { options: { tsConfig: { fileName: TEST_TSCONFIG } } },
       }),
       lTsconfigContentsWithBaseURLAndPaths

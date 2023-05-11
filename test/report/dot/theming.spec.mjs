@@ -1,8 +1,8 @@
 import _cloneDeep from "lodash/cloneDeep.js";
 import { expect } from "chai";
-import theming from "../../../src/report/dot/theming.js";
+import theming from "../../../src/report/dot/theming.mjs";
 
-describe("report/dot/theming - determineModuleColors - default theme", () => {
+describe("[U] report/dot/theming - determineModuleColors - default theme", () => {
   it("empty module => no colors", () => {
     expect(
       theming.determineAttributes({}, theming.normalizeTheme({}).module)

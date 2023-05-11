@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import validateNodeEnvironment from "../../src/cli/validate-node-environment.js";
+import validateNodeEnvironment from "../../src/cli/validate-node-environment.mjs";
 
-describe("cli/validateNodeEnv", () => {
+describe("[U] cli/validateNodeEnv", () => {
   it("throws when an older and unsupported node version is passed", () => {
     expect(() => {
       validateNodeEnvironment("6.0.0");
@@ -28,7 +28,6 @@ describe("cli/validateNodeEnv", () => {
 
   it("doesn't throw when an undefined node version is passed (assuming test is run on a supported platform)", () => {
     expect(() => {
-      // eslint-disable-next-line no-undefined
       validateNodeEnvironment();
     }).to.not.throw();
   });
@@ -41,7 +40,7 @@ describe("cli/validateNodeEnv", () => {
 
   it("doesn't throw when a supported node version is passed", () => {
     expect(() => {
-      validateNodeEnvironment("16.0.0");
+      validateNodeEnvironment("18.0.0");
     }).to.not.throw();
   });
 });

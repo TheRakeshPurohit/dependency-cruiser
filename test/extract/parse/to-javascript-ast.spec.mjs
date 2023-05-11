@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import get from "lodash/get.js";
-import { getASTFromSource } from "../../../src/extract/parse/to-javascript-ast.js";
+import { getASTFromSource } from "../../../src/extract/parse/to-javascript-ast.mjs";
 
 const TSCONFIG_CONSTANTS = {
   ESNEXT: 99,
@@ -15,7 +15,7 @@ const TSX_SOURCE = `
 
     export default Index;
     `;
-describe("extract/parse/to-javascript-ast", () => {
+describe("[U] extract/parse/to-javascript-ast", () => {
   it("recogizes 'preserve'd tsx as jsx", () => {
     const lFoundAST = getASTFromSource(
       {

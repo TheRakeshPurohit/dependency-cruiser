@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import violatesRequiredRule from "../../src/validate/violates-required-rule.js";
+import violatesRequiredRule from "../../src/validate/violates-required-rule.mjs";
 
 const SIMPLE_RULE = {
   module: {
@@ -21,7 +21,7 @@ const GROUP_MATCHING_RULE = {
     path: "src/$1.js$",
   },
 };
-describe("validate/violates-required-rule", () => {
+describe("[I] validate/violates-required-rule", () => {
   it("does not violate when the module does not match", () => {
     expect(
       violatesRequiredRule(SIMPLE_RULE, { source: "does not match" })

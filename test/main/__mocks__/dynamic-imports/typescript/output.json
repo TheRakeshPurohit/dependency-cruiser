@@ -1,0 +1,144 @@
+{
+  "modules": [
+    {
+      "source": "src/circular.ts",
+      "dependencies": [
+        {
+          "module": "./index",
+          "moduleSystem": "es6",
+          "dynamic": false,
+          "exoticallyRequired": false,
+          "resolved": "src/index.ts",
+          "coreModule": false,
+          "followable": true,
+          "couldNotResolve": false,
+          "dependencyTypes": ["local"],
+          "matchesDoNotFollow": false,
+          "circular": true,
+          "cycle": [
+            "src/index.ts",
+            "src/dynamic-to-circular.ts",
+            "src/circular.ts"
+          ],
+          "valid": false,
+          "rules": [{ "severity": "info", "name": "no-circular" }]
+        }
+      ],
+      "dependents": ["src/dynamic-to-circular.ts"],
+      "orphan": false,
+      "valid": true
+    },
+    {
+      "source": "src/index.ts",
+      "dependencies": [
+        {
+          "module": "./dynamic-to-circular",
+          "moduleSystem": "es6",
+          "dynamic": false,
+          "exoticallyRequired": false,
+          "resolved": "src/dynamic-to-circular.ts",
+          "coreModule": false,
+          "followable": true,
+          "couldNotResolve": false,
+          "dependencyTypes": ["local"],
+          "matchesDoNotFollow": false,
+          "circular": true,
+          "cycle": [
+            "src/dynamic-to-circular.ts",
+            "src/circular.ts",
+            "src/index.ts"
+          ],
+          "valid": false,
+          "rules": [{ "severity": "info", "name": "no-circular" }]
+        }
+      ],
+      "dependents": ["src/circular.ts"],
+      "orphan": false,
+      "valid": true
+    },
+    {
+      "source": "src/dynamic-to-circular.ts",
+      "dependencies": [
+        {
+          "module": "./circular",
+          "moduleSystem": "es6",
+          "dynamic": true,
+          "exoticallyRequired": false,
+          "resolved": "src/circular.ts",
+          "coreModule": false,
+          "followable": true,
+          "couldNotResolve": false,
+          "dependencyTypes": ["local"],
+          "matchesDoNotFollow": false,
+          "circular": true,
+          "cycle": [
+            "src/circular.ts",
+            "src/index.ts",
+            "src/dynamic-to-circular.ts"
+          ],
+          "valid": false,
+          "rules": [{ "severity": "warn", "name": "no-dynamic" }]
+        }
+      ],
+      "dependents": ["src/index.ts"],
+      "orphan": false,
+      "valid": true
+    }
+  ],
+  "summary": {
+    "violations": [
+      {
+        "type": "dependency",
+        "from": "src/dynamic-to-circular.ts",
+        "to": "src/circular.ts",
+        "rule": { "severity": "warn", "name": "no-dynamic" }
+      },
+      {
+        "type": "cycle",
+        "from": "src/circular.ts",
+        "to": "src/index.ts",
+        "rule": { "severity": "info", "name": "no-circular" },
+        "cycle": [
+          "src/index.ts",
+          "src/dynamic-to-circular.ts",
+          "src/circular.ts"
+        ]
+      }
+    ],
+    "error": 0,
+    "warn": 1,
+    "info": 1,
+    "ignore": 0,
+    "totalCruised": 3,
+    "totalDependenciesCruised": 3,
+    "optionsUsed": {
+      "combinedDependencies": false,
+      "exoticRequireStrings": [],
+      "externalModuleResolutionStrategy": "node_modules",
+      "metrics": false,
+      "moduleSystems": ["es6", "cjs", "tsd", "amd"],
+      "preserveSymlinks": false,
+      "tsPreCompilationDeps": false,
+      "args": "src",
+      "baseDir": "test/main/__mocks__/dynamic-imports/typescript"
+    },
+    "ruleSetUsed": {
+      "forbidden": [
+        {
+          "name": "no-circular",
+          "severity": "info",
+          "from": {},
+          "to": { "dynamic": false, "circular": true },
+          "scope": "module"
+        },
+        {
+          "name": "no-dynamic",
+          "severity": "warn",
+          "from": {},
+          "to": { "dynamic": true },
+          "scope": "module"
+        }
+      ]
+    }
+  }
+}

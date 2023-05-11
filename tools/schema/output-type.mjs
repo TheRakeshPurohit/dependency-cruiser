@@ -20,6 +20,10 @@ export default {
             "teamcity",
             "anon",
             "text",
+            "metrics",
+            "markdown",
+            "mermaid",
+            "null",
           ],
         },
         {

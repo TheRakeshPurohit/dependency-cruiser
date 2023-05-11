@@ -4,9 +4,13 @@ import compoundDoNotFollowType from "./compound-donot-follow-type.mjs";
 import compoundExcludeType from "./compound-exclude-type.mjs";
 import compoundFocusType from "./compound-focus-type.mjs";
 import compoundIncludeOnlyType from "./compound-include-only-type.mjs";
+import compoundReachesType from "./compound-reaches-type.mjs";
+import compoundHighlightType from "./compound-highlight-type.mjs";
 import dependencyType from "./dependency-type.mjs";
 import moduleSystemsType from "./module-systems-type.mjs";
 import reporterOptions from "./reporter-options.mjs";
+import violations from "./violations.mjs";
+import cacheOptions from "./cache-options.mjs";
 
 export default {
   definitions: {
@@ -49,6 +53,34 @@ export default {
             { $ref: "#/definitions/REAsStringsType" },
             { $ref: "#/definitions/CompoundFocusType" },
           ],
+        },
+        reaches: {
+          description:
+            "dependency-cruiser will include modules matching this regular expression " +
+            "in its output, as well as _any_ module that reaches them - either directly " +
+            "or via via",
+          oneOf: [
+            { $ref: "#/definitions/REAsStringsType" },
+            { $ref: "#/definitions/CompoundReachesType" },
+          ],
+        },
+        highlight: {
+          description:
+            "dependency-cruiser will mark modules matching this regular expression " +
+            "as 'highlighted' in its output",
+          oneOf: [
+            { $ref: "#/definitions/REAsStringsType" },
+            { $ref: "#/definitions/CompoundHighlightType" },
+          ],
+        },
+        knownViolations: {
+          description:
+            "baseline of known validations. Typically you'd specify these in a file called " +
+            ".dependency-cruiser-known-violations.json (which you'd generate with the --outputType " +
+            "'baseline') - and which is easy to keep up to date. In a pinch you can specify " +
+            "them here as well. The known violations in .dependency-cruiser-known-violations.json " +
+            "always take precedence.",
+          $ref: "#/definitions/ViolationsType",
         },
         collapse: {
           description:
@@ -119,6 +151,18 @@ export default {
             },
           ],
         },
+        extraExtensionsToScan: {
+          type: "array",
+          description:
+            "List of extensions to scan _in addition_ to the extensions already " +
+            "covered by any available parser. Dependency-cruiser will consider " +
+            "files ending in these extensions but it will _not_ examine its content " +
+            "or derive any of their dependencies " +
+            'Sample value: [".jpg", ".png", ".json"]',
+          items: {
+            type: "string",
+          },
+        },
         externalModuleResolutionStrategy: {
           type: "string",
           description:
@@ -129,7 +173,7 @@ export default {
         forceDeriveDependents: {
           type: "boolean",
           description:
-            "When true includes denormalized dependents in the cruise-result, even " +
+            "When true includes de-normalized dependents in the cruise-result, even " +
             "though there's no rule in the rule set that requires them. Defaults to false.",
         },
         webpackConfig: {
@@ -209,15 +253,31 @@ export default {
                 "extensions attribute. E.g. when you're 100% sure you _only_ have " +
                 "typescript & json and nothing else you can pass ['.ts', '.json'] " +
                 "- which can lead to performance gains on systems with slow i/o " +
-                "(like ms-windows), especially when your tsconfig contains paths/ aliasses.",
+                "(like ms-windows), especially when your tsconfig contains paths/ aliases.",
               items: {
                 type: "string",
               },
             },
+            mainFields: {
+              type: "array",
+              description:
+                "A list of main fields in manifests (package.json s). Typically you'd " +
+                "want to keep leave this this on its default (['main']) , but if " +
+                "you e.g. use external packages that only expose types, and you " +
+                "still want references to these types to be resolved you could expand " +
+                "this to ['main', 'types']",
+            },
+            mainFiles: {
+              type: "array",
+              description:
+                "A list of files to consider 'main' files, defaults to " +
+                "['index']. Only set this when you have really special needs " +
+                "that warrant it.",
+            },
             cachedInputFileSystem: {
               type: "object",
               description:
-                "Options to pass to the resolver (webpack's 'enhanced resolve') regarding" +
+                "Options to pass to the resolver (webpack's 'enhanced resolve') regarding " +
                 "caching.",
               additionalProperties: false,
               properties: {
@@ -228,7 +288,7 @@ export default {
                   maximum: 1800000,
                   description:
                     "The number of milliseconds [enhanced-resolve](webpack/enhanced-resolve)'s " +
-                    "cached file system should use for cache duration. Typicially you won't " +
+                    "cached file system should use for cache duration. Typically you won't " +
                     "have to touch this - the default works well for repos up to 5000 modules/ " +
                     "20000 dependencies, and likely for numbers above as well. " +
                     "If you experience memory problems on a (humongous) repository you can " +
@@ -268,7 +328,7 @@ export default {
           type: "array",
           description:
             "List of strings you have in use in addition to cjs/ es6 requires & " +
-            "imports to declare module dependencies. Use this e.g. if you've redeclared " +
+            "imports to declare module dependencies. Use this e.g. if you've re-declared " +
             "require (`const want = require`), use a require-wrapper (like semver-try-require) " +
             "or use window.require as a hack to workaround something",
           items: {
@@ -289,15 +349,49 @@ export default {
           properties: {
             type: {
               type: "string",
-              enum: ["cli-feedback", "performance-log", "none"],
+              enum: ["cli-feedback", "performance-log", "ndjson", "none"],
+            },
+            maximumLevel: {
+              description:
+                "The maximum log level to emit messages at. Ranges from OFF (-1, don't " +
+                "show any messages), via SUMMARY (40), INFO (50), DEBUG (60) all the " +
+                "way to show ALL messages (99).",
+              type: "number",
+              // eslint-disable-next-line no-magic-numbers
+              enum: [-1, 40, 50, 60, 70, 80, 99],
             },
           },
+        },
+        metrics: {
+          type: "boolean",
+          description:
+            "When this flag is set to true, dependency-cruiser will calculate (stability) metrics " +
+            "for all modules and folders. Defaults to false.",
         },
         baseDir: {
           type: "string",
           description:
             "The directory dependency-cruiser should run its cruise from. Defaults to the current " +
             "working directory.",
+        },
+        cache: {
+          oneOf: [
+            {
+              type: "boolean",
+            },
+            {
+              type: "string",
+            },
+            { $ref: "#/definitions/CacheOptionsType" },
+          ],
+          description:
+            "- false: don't use caching. \n" +
+            "- true or empty object: use caching with the default settings \n" +
+            "- a string (deprecated): cache in the folder denoted by the string & use the \n" +
+            "  default caching strategy. This is deprecated - instead pass a cache object \n" +
+            "  e.g. ```{ folder: 'your/cache/location' }```.\n\n" +
+            "Defaults to false (no caching).\n" +
+            "When caching is switched on the default cache folder is 'node_modules/.cache/dependency-cruiser/'",
         },
       },
     },
@@ -307,7 +401,11 @@ export default {
     ...compoundDoNotFollowType.definitions,
     ...compoundIncludeOnlyType.definitions,
     ...compoundFocusType.definitions,
+    ...compoundReachesType.definitions,
+    ...compoundHighlightType.definitions,
     ...reporterOptions.definitions,
     ...REAsStringsType.definitions,
+    ...violations.definitions,
+    ...cacheOptions.definitions,
   },
 };

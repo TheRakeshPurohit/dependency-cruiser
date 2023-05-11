@@ -1,8 +1,8 @@
-import path from "path";
+import { join } from "node:path";
 import { expect } from "chai";
-import makeAbsolute from "../../src/config-utl/make-absolute.js";
+import makeAbsolute from "../../src/config-utl/make-absolute.mjs";
 
-describe("cli/utl/makeAbsolute", () => {
+describe("[U] cli/utl/makeAbsolute", () => {
   it("leaves absolute path names alone", () => {
     expect(makeAbsolute("/hallo/dit/is/een/absoluut/pad")).to.equal(
       "/hallo/dit/is/een/absoluut/pad"
@@ -10,6 +10,6 @@ describe("cli/utl/makeAbsolute", () => {
   });
 
   it("puts the current working directory in front of non-absolute paths", () => {
-    expect(makeAbsolute("pad")).to.equal(path.join(process.cwd(), "pad"));
+    expect(makeAbsolute("pad")).to.equal(join(process.cwd(), "pad"));
   });
 });

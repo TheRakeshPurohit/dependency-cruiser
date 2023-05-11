@@ -1,10 +1,10 @@
-# Dependency cruiser ![Dependency cruiser](https://raw.githubusercontent.com/sverweij/dependency-cruiser/master/doc/assets/ZKH-Dependency-recolored-160.png)
+# Dependency cruiser ![Dependency cruiser](https://raw.githubusercontent.com/sverweij/dependency-cruiser/develop/doc/assets/ZKH-Dependency-recolored-160.png)
 
 _Validate and visualise dependencies. With your rules._ JavaScript. TypeScript. CoffeeScript. ES6, CommonJS, AMD.
 
 ## What's this do?
 
-![Snazzy dot output to whet your appetite](https://raw.githubusercontent.com/sverweij/dependency-cruiser/master/doc/assets/sample-dot-output.png)
+![Snazzy dot output to whet your appetite](https://raw.githubusercontent.com/sverweij/dependency-cruiser/develop/doc/assets/sample-dot-output.png)
 
 This runs through the dependencies in any JavaScript, TypeScript, LiveScript or CoffeeScript project and ...
 
@@ -13,47 +13,89 @@ This runs through the dependencies in any JavaScript, TypeScript, LiveScript or 
   - in text (for your builds)
   - in graphics (for your eyeballs)
 
-As a side effect it can generate [**cool dependency graphs**](./doc/real-world-samples.md)
+As a side effect it can generate dependency graphs in various output formats including [**cool visualizations**](./doc/real-world-samples.md)
 you can stick on the wall to impress your grandma.
 
 ## How do I use it?
 
-### Install it
+### Install it ...
 
-- `npm install --save-dev dependency-cruiser` to use it as a validator in your project (recommended) or...
-- `npm install --global dependency-cruiser` if you just want to to inspect multiple projects.
+```shell
+npm install --save-dev dependency-cruiser
+# or
+yarn add -D dependency-cruiser
+pnpm add -D dependency-cruiser
+```
+
+### ... and generate a config
+
+```shell
+npx depcruise --init
+```
+
+This will look around in your environment a bit, ask you some questions and create
+a `.dependency-cruiser.js` configuration file attuned to your project[^1][^2].
+
+[^1]:
+    We're using `npx` in the example scripts for convenience. When you use the
+    commands in a script in `package.json` it's not necessary to prefix them with
+    `npx`.
+
+[^2]:
+    If you don't don't want to use `npx`, but instead `pnpx` (from the `pnpm`
+    package manager) or `yarn` - please refer to that tool's documentation.
+    Particularly `pnpx` has semantics that differ from `npx` quite significantly
+    and that you want to be aware of before using it. In the mean time: `npx`
+    _should_ work even when you installed the dependency with a package manager
+    different from `npm`.
 
 ### Show stuff to your grandma
 
 To create a graph of the dependencies in your src folder, you'd run dependency
-cruiser with output type `dot` and run _GraphViz dot_ on the result. In
+cruiser with output type `dot` and run _GraphViz dot_[^3] on the result. In
 a one liner:
 
 ```shell
-depcruise --include-only "^src" --output-type dot src | dot -T svg > dependencygraph.svg
+npx depcruise src --include-only "^src" --output-type dot | dot -T svg > dependency-graph.svg
 ```
+
+> <details>
+> <summary>dependency-cruiser v12 and older: add --config option</summary>
+>
+> While not necessary from dependency-cruiser v13, in v12 and older you'll have
+> to pass the --config option to make it find the .dependency-cruiser.js
+> configuration file:
+>
+> ```shell
+> npx depcruise src --include-only "^src" --config --output-type dot | dot -T svg > dependency-graph.svg
+> ```
+
+</details>
 
 - You can read more about what you can do with `--include-only` and other command line
   options in the [command line interface](./doc/cli.md) documentation.
 - _[Real world samples](./doc/real-world-samples.md)_
   contains dependency cruises of some of the most used projects on npm.
+- If your grandma is more into formats like `mermaid`, `json`, `csv`, `html` or plain text
+  we've [got her covered](./doc/cli.md#--output-type-specify-the-output-format)
+  as well.
+
+[^3]:
+    This assumes the GraphViz `dot` command is available - on most linux and
+    comparable systems this will be. In case it's not, see
+    [GraphViz' download page](https://www.graphviz.org/download/) for instructions
+    on how to get it on your machine.
 
 ### Validate things
 
 #### Declare some rules
 
-The easy way to get you started:
+When you ran `depcruise --init` above, the command also added some rules
+to `.dependency-cruiser.js` that make sense in most projects, like detecting
+**circular dependencies**, dependencies **missing** in package.json, **orphans**,
+and production code relying on dev- or optionalDependencies.
 
-```shell
-depcruise --init
-```
-
-This will ask you some questions and create a `.dependency-cruiser.js` with some
-rules that make sense in most projects (detecting **circular dependencies**,
-dependencies **missing** in package.json, **orphans**, production code relying on
-dev- or optionalDependencies, ...).
-
-Start adding your rules by tweaking that file.
+Start adding your own rules by tweaking that file.
 
 Sample rule:
 
@@ -74,27 +116,39 @@ Sample rule:
 - To read more about writing rules check the
   [writing rules](./doc/rules-tutorial.md) tutorial
   or the [rules reference](./doc/rules-reference.md)
-- You can find the `--init-rules` set [here](./doc/rules.starter.json)
 
 #### Report them
 
 ```sh
-depcruise --config .dependency-cruiser.js src
+npx depcruise src
 ```
+
+> <details>
+> <summary>dependency-cruiser v12 and older: add --config option</summary>
+>
+> While not necessary from dependency-cruiser v13, in v12 and older you'll have
+> to pass the --config option to make it find the .dependency-cruiser.js
+> configuration file:
+>
+> ```shell
+> npx depcruise --config .dependency-cruiser.js src
+> ```
+
+</details>
 
 This will validate against your rules and shows any violations in an eslint-like format:
 
-![sample err output](https://raw.githubusercontent.com/sverweij/dependency-cruiser/master/doc/assets/sample-err-output.png)
+![sample err output](https://raw.githubusercontent.com/sverweij/dependency-cruiser/develop/doc/assets/sample-err-output.png)
 
 There's more ways to report validations; in a graph (like the one on top of this
-readme) or in a table.
+readme) or in an self-containing `html` file.
 
 - Read more about the err, dot, csv and html reporters in the
   [command line interface](./doc/cli.md)
   documentation.
 - dependency-cruiser uses itself to check on itself in its own build process;
   see the `depcruise` script in the
-  [package.json](https://github.com/sverweij/dependency-cruiser/blob/master/package.json#L64)
+  [package.json](https://github.com/sverweij/dependency-cruiser/blob/develop/package.json#L76)
 
 ## I want to know more!
 
@@ -138,7 +192,7 @@ You've come to the right place :-) :
 
 ## Build status
 
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/sverweij/dependency-cruiser/linting%20%26%20test%20coverage%20-%20linux?label=actions&logo=github)](https://github.com/sverweij/dependency-cruiser/actions)
+[![GitHub Workflow Status](https://github.com/sverweij/dependency-cruiser/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/sverweij/dependency-cruiser/actions/workflows/ci.yml)
 [![coverage](https://gitlab.com/sverweij/dependency-cruiser/badges/master/coverage.svg)](https://gitlab.com/sverweij/dependency-cruiser/builds)
 [![Maintainability](https://api.codeclimate.com/v1/badges/93035ef5fba33901d479/maintainability)](https://codeclimate.com/github/sverweij/dependency-cruiser/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/93035ef5fba33901d479/test_coverage)](https://codeclimate.com/github/sverweij/dependency-cruiser/test_coverage)

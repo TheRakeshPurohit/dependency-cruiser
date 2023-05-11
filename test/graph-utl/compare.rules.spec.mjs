@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import { rules } from "../../src/graph-utl/compare.js";
+import { rules } from "../../src/graph-utl/compare.mjs";
 
-describe("utl/compare - rules", () => {
+describe("[U] graph-utl/compare - rules", () => {
   it("samesies yield 0", () => {
     expect(
       rules(

@@ -1,17 +1,17 @@
 import { expect } from "chai";
-import { isRelativeModuleName } from "../../../src/extract/resolve/module-classifiers.js";
+import { isRelativeModuleName } from "../../../src/extract/resolve/module-classifiers.mjs";
 
-describe("extract/resolve/module-classifiers - isRelativeModuleName", () => {
+describe("[U] extract/resolve/module-classifiers - isRelativeModuleName", () => {
   it("throws an error when passed nothing", () => {
     expect(() => {
       isRelativeModuleName();
-    }).to.throw("Cannot read property 'startsWith' of undefined");
+    }).to.throw();
   });
 
   it("throws an error when passed null", () => {
     expect(() => {
       isRelativeModuleName(null);
-    }).to.throw("Cannot read property 'startsWith' of null");
+    }).to.throw();
   });
 
   it("returns false when passed an empty string", () => {

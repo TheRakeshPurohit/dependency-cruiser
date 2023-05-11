@@ -64,7 +64,7 @@ export default {
           description:
             "the type of inclusion - local, core, unknown (= we honestly don't " +
             "know), undetermined (= we didn't bother determining it) or one of " +
-            "the npm dependencies defined in a package.jsom ('npm' for 'dependencies', " +
+            "the npm dependencies defined in a package.json ('npm' for 'dependencies', " +
             "'npm-dev', 'npm-optional', 'npm-peer', 'npm-no-pkg' for development, " +
             "optional, peer dependencies and dependencies in node_modules but not " +
             "in package.json respectively)",
@@ -109,7 +109,7 @@ export default {
         couldNotResolve: {
           type: "boolean",
           description:
-            "'true' if dependency-cruiser could not resulve the module name in " +
+            "'true' if dependency-cruiser could not resolve the module name in " +
             "the source code to a file name or core module. 'false' in all other " +
             "cases.",
         },
@@ -120,6 +120,14 @@ export default {
             "exists before compilation takes place. 'false in all other cases. " +
             "Dependency-cruiser will only specify this attribute for TypeScript and " +
             "then only when the option 'tsPreCompilationDeps' has the value 'specify'.",
+        },
+        typeOnly: {
+          type: "boolean",
+          description:
+            "'true' when the module included the module explicitly as type only " +
+            "with the 'type' keyword e.g. import type { IThingus } from 'thing' " +
+            "Dependency-cruiser will only specify this attribute for TypeScript and " +
+            "when the 'tsPreCompilationDeps' option has either the value true or 'specify'.",
         },
         circular: {
           type: "boolean",
@@ -140,7 +148,7 @@ export default {
           type: "boolean",
           description:
             "'true' if this dependency violated a rule; 'false' in all other cases. " +
-            "The violated rule will be in the 'rule' object at the same level.",
+            "The violated rule will be in the 'rules' object at the same level.",
         },
         rules: {
           type: "array",
@@ -148,6 +156,12 @@ export default {
           description:
             "an array of rules violated by this dependency - left out if the dependency " +
             "is valid",
+        },
+        instability: {
+          type: "number",
+          description:
+            "the (de-normalized) instability of the dependency - also available in " +
+            "the module on the 'to' side of this dependency",
         },
       },
     },

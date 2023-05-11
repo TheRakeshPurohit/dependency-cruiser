@@ -1,0 +1,31 @@
+{
+  "modules": [
+    {
+      "source": "src/use-maybe.ts",
+      "dependencies": [],
+      "dependents": [],
+      "orphan": true,
+      "valid": true
+    }
+  ],
+  "summary": {
+    "violations": [],
+    "error": 0,
+    "warn": 0,
+    "info": 0,
+    "ignore": 0,
+    "totalCruised": 1,
+    "totalDependenciesCruised": 0,
+    "optionsUsed": {
+      "combinedDependencies": false,
+      "exoticRequireStrings": [],
+      "externalModuleResolutionStrategy": "node_modules",
+      "metrics": false,
+      "moduleSystems": ["es6", "cjs", "tsd", "amd"],
+      "preserveSymlinks": false,
+      "tsPreCompilationDeps": false,
+      "args": "src",
+      "baseDir": "test/main/__mocks__/type-only-module-references"
+    }
+  }
+}
